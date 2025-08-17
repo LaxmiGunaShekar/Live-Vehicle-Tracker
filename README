@@ -1,4 +1,4 @@
-Live Vehicle Tracker: A Garbage Truck Alerter
+#Live Vehicle Tracker: A Garbage Truck Alerter
 This is a project I built to solve a simple, everyday problem: trying to catch the garbage truck.
 
 In many places in India, the truck's arrival is unpredictable. You either miss it or have to listen for the horn all morning. I wanted to see if I could build a simple prototype for an app that just tells you, "Hey, the truck is close!" This project is my proof-of-concept for that idea.
