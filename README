@@ -1,72 +1,57 @@
 # Live Vehicle Tracker: A Garbage Truck Alerter
 
-This is a project I built to solve a simple, everyday problem: trying to catch the garbage truck.
-
-In many places in India, the truck's arrival is unpredictable. You either miss it or have to listen for the horn all morning. I wanted to see if I could build a simple prototype for an app that just tells you, "Hey, the truck is close!" This project is my proof-of-concept for that idea.
-
-It simulates the whole system: I use my phone as the "truck," which sends its location, and a Python script on my laptop acts as the "resident," which listens for the truck and prints an alert when it's nearby.
+This is a project I built to solve a simple, everyday problem: trying to catch the garbage truck. In many places in India, the truck's arrival is unpredictable. I wanted to see if I could build a simple prototype for an app that just tells you, "Hey, the truck is close!" This project is my proof-of-concept for that idea.
 
 ---
 
-## What I'm Trying to Solve
+## Features
 
-The goal here was to create a simple, low-cost solution for a common problem. By using basic tech like a phone's GPS, a free cloud database, and a simple Python script, I wanted to show that it's possible to build a system that could eventually be scaled up to a real service for a whole neighborhood.
+* **Real-Time Tracking:** Uses a phone's GPS to transmit a live location.
+* **Cloud Communication:** Leverages Google Firestore for instant data synchronization.
+* **Distance Calculation:** Accurately calculates the distance between the "truck" and the "resident".
+* **Proximity Alerts:** Triggers a console notification when the truck is within a set range.
+
+---
 
 ## How It's Built
 
 The whole thing is split into two parts:
 
-1.  **The "Truck" (`truck.html`):** This is just a simple webpage I open on my phone. It uses the phone's GPS to grab its current location and sends it up to a Firestore database. It keeps doing this so the location is always live.
-2.  **The "Alerter" (`tracker.py`):** This is the Python script I run on my computer. It's constantly watching that same spot in the database. As soon as the location data changes, it grabs the new coordinates, calculates how far away it is from my laptop, and prints a big "NEARBY" message if it's within the range I've set.
-
-It's a pretty straightforward setup but it works surprisingly well.
+* **The "Truck" (`truck.html`):** A simple webpage that runs on a phone. It grabs the GPS location and sends it to Firestore.
+* **The "Alerter" (`tracker.py`):** A Python script that runs on a computer. It listens for location changes in Firestore and calculates the distance.
 
 ---
 
 ## How to Get It Running
 
-If you want to try this yourself, here’s what you’ll need:
+### **Step 1: Set up Firebase**
 
-* Python 3
-* A Google account (for Firebase)
-* A phone with GPS
+-   Create a new project in the Firebase Console.
+-   Set up a Firestore Database in **test mode**.
+-   Go to **Project settings > Service accounts** and **generate a new private key**. Save the downloaded `.json` file.
 
-### Step 1: Set up Firebase (the database in the middle)
+### **Step 2: Configure the Project Files**
 
--   First, you'll need a Firebase project. Go to their console and create one.
--   Inside the project, find the Firestore Database and create one. When it asks, just start it in **test mode** to make things easy.
--   You'll need a key file for the Python script to log in. Go to **Project settings > Service accounts** and click **"Generate new private key"**. It'll download a JSON file. Keep this safe.
+-   In `truck.html`, replace the placeholder `firebaseConfig` variable with your own web app config from Firebase.
+-   In `tracker.py`, update the `SERVICE_ACCOUNT_KEY_FILE` variable to be the name of your downloaded JSON key.
+-   Update `LAPTOP_COORDS` with your latitude and longitude.
 
-### Step 2: Configure the `truck.html` file
+### **Step 3: Install Dependencies**
 
--   Open up `truck.html`.
--   You'll need to tell it how to connect to *your* Firebase project. In the Firebase settings, find your web app config details (it's a little block of code called `firebaseConfig`).
--   Copy that whole block and paste it over the placeholder one in the `truck.html` file.
+-   Run this command in your terminal:
+    ```bash
+    pip install google-cloud-firestore geopy
+    ```
 
-### Step 3: Configure the `tracker.py` script
+### **Step 4: Run the Application**
 
--   Take that JSON key file you downloaded and put it in the same folder as the `tracker.py` script.
--   Open `tracker.py` and change the `SERVICE_ACCOUNT_KEY_FILE` variable to match the name of your JSON file.
--   Update `LAPTOP_COORDS` with your own latitude and longitude.
--   You can also change `NEARBY_DISTANCE_METERS` to whatever you want the alert range to be.
-
-### Step 4: Install the Python stuff
-
-You'll need a couple of libraries. Just run this in your terminal:
-
-```bash
-pip install google-cloud-firestore geopy
-### Step 5: Fire it up!
-
-This is the tricky part because you need to get the `truck.html` file running on a secure server so your phone's browser will give it GPS access. The best way is with `ngrok`.
-
-1.  In your project folder, start a simple Python server: `python -m http.server 8000`
-2.  In a *new* terminal, use ngrok to make that server public and secure: `ngrok http 8000`
-3.  ngrok will give you a `https://...` URL. Open that URL on your phone's browser and add `/truck.html` to the end. Hit the "Start Transmitting" button.
-4.  Finally, run the tracker script on your computer:
-
+-   Use `ngrok` to create a secure public URL for your `truck.html` file.
+    1.  Start a local server: `python -m http.server 8000`
+    2.  In a new terminal, run: `ngrok http 8000`
+-   Open the `https://...` ngrok URL on your phone's browser (e.g., `https://.../truck.html`).
+-   Run the tracker script on your computer:
     ```bash
     python tracker.py
     ```
 
-You should now see the distance updates printing in your terminal as you move around with your phone.
+---
