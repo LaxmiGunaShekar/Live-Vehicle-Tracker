@@ -4,18 +4,17 @@ from google.cloud import firestore
 from geopy.distance import geodesic
 import os
 
-# --- SETUP ---
-# ** NEW: Put the name of your key file here. **
+
+# NEW: Put the name of your key file here. **
 # Make sure this JSON file is in the SAME FOLDER as this Python script.
-SERVICE_ACCOUNT_KEY_FILE = "truck-tracker-demo-firebase-adminsdk-fbsvc-035a1fbb0a.json" # <--- REPLACE THIS FILENAME
+SERVICE_ACCOUNT_KEY_FILE = "truck-tracker-demo-firebase-adminsdk-fbsvc-035a1fbb0a.json"
 
 # --- CONFIGURATION ---
-# Replace with your laptop's approximate coordinates.
-# You can get these from Google Maps by right-clicking on your location.
+# Coordinates of your laptop (or the location you want to track from)
 LAPTOP_COORDS = (17.152335 , 79.618608)
 
 # The distance in meters to be considered "nearby"
-NEARBY_DISTANCE_METERS = 10  # You can adjust this value as needed
+NEARBY_DISTANCE_METERS = 10  
 
 # --- SCRIPT ---
 
