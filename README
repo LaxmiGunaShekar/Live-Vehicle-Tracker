@@ -1,0 +1,70 @@
+Live Vehicle Tracker
+A real-time GPS tracking prototype that sends alerts when a target device is nearby. This project uses a mobile phone as a mock vehicle, which transmits its location to a cloud database. A Python script on a host computer listens for location updates, calculates the distance, and triggers a notification when the vehicle is within a predefined range.
+
+Features
+Real-Time Tracking: Uses the web Geolocation API to get live GPS coordinates from a mobile device.
+
+Cloud Communication: Leverages Google Firestore as a real-time, serverless database to sync location data between the vehicle and the tracker.
+
+Distance Calculation: The Python script accurately calculates the geodesic distance between two points on Earth.
+
+Proximity Alerts: Prints a "NEARBY" alert to the console when the tracked device enters a specified radius.
+
+How It Works
+This project consists of two main components:
+
+The Vehicle Simulator (truck.html): A simple web page that runs on a mobile browser. It gets the phone's GPS coordinates and continuously updates them to a specific document in a Firestore database.
+
+The Tracker Script (tracker.py): A Python script that runs on a host computer. It establishes a real-time listener to the same Firestore document. When the location data changes, the script calculates the distance from its own location and checks if it's within the alert range.
+
+How to Run This Project
+Prerequisites
+Python 3.x installed
+
+A Google account for Firebase
+
+A mobile phone with a web browser and GPS
+
+Setup Instructions
+1. Set Up Firebase
+Create a new project in the Firebase Console.
+
+In your project, go to Build > Firestore Database and create a new database in test mode.
+
+Go to Project settings > Service accounts, click "Generate new private key", and save the downloaded JSON file.
+
+2. Configure the Vehicle Simulator (truck.html)
+Open truck.html.
+
+In your Firebase project settings, find your web app config object (firebaseConfig).
+
+Copy this object and paste it into the firebaseConfig variable in truck.html.
+
+3. Configure the Tracker Script (tracker.py)
+Place your downloaded Firebase service account JSON key file in the same folder as the script.
+
+Open tracker.py and change the SERVICE_ACCOUNT_KEY_FILE variable to the name of your key file.
+
+Update the LAPTOP_COORDS variable with your own latitude and longitude.
+
+Adjust the NEARBY_DISTANCE_METERS variable to your desired alert range.
+
+4. Install Dependencies
+Run the following command in your terminal to install the necessary Python libraries:
+
+pip install google-cloud-firestore geopy
+
+5. Run the Application
+To serve the truck.html file, you need a local server that can be accessed from your phone. The recommended method is using ngrok:
+
+Start a local server in your project directory: python -m http.server 8000
+
+In a new terminal, create a secure public tunnel to that server: ngrok http 8000
+
+Open the https://... ngrok URL on your mobile phone's browser and add /truck.html to the end. Press "Start Transmitting".
+
+In your project directory on your computer, run the tracker script:
+
+python tracker.py
+
+As you move with your phone, you will see the distance updates in your terminal.
