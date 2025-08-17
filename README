@@ -1,72 +1,51 @@
-# Live Vehicle Tracker
+# Live Vehicle Tracker: A Garbage Truck Alerter
 
-A real-time GPS tracking prototype that sends alerts when a target device is nearby, designed as a proof-of-concept for a garbage truck notification system.
+A real-time GPS tracking prototype that sends alerts when a target device is nearby. This project is a proof-of-concept for a system to notify residents when their garbage collection vehicle is approaching.
 
-## Features
+---
 
-- **Real-Time Tracking**: Uses the web Geolocation API to get live GPS coordinates.
-- **Cloud Communication**: Leverages Google Firestore for instant data synchronization.
-- **Distance Calculation**: Accurately calculates the geodesic distance between two points.
-- **Proximity Alerts**: Triggers a console notification when the vehicle is within a set range.
+### Features
 
-## Technologies Used
+* **Real-Time Tracking:** Uses a phone's GPS to transmit a live location.
+* **Cloud Communication:** Leverages Google Firestore for instant data synchronization.
+* **Distance Calculation:** Accurately calculates the distance between the "truck" and the "resident".
+* **Proximity Alerts:** Triggers a console notification when the truck is within a set range.
 
-- **Frontend Simulator**: HTML, CSS, JavaScript
-- **Backend Tracker**: Python
-- **Database**: Google Firestore
-- **Geolocation**: Web Geolocation API
-- **Tunneling**: ngrok (for development)
+---
 
-## Getting Started
+### How It's Built
 
-### Prerequisites
+The system is split into two main components:
 
-- Python (v3.6 or higher)
-- A Google Account for Firebase
+* **The "Truck" (`truck.html`):** A simple webpage that runs on a phone. It grabs the GPS location and sends it to Firestore.
+* **The "Alerter" (`tracker.py`):** A Python script that runs on a computer. It listens for location changes in Firestore and calculates the distance.
 
-### Setup
+---
 
-1.  Clone the repository
-    ```
-    git clone [https://github.com/LaxmiGunaShekar/Live-Vehicle-Tracker.git](https://github.com/LaxmiGunaShekar/Live-Vehicle-Tracker.git)
-    cd Live-Vehicle-Tracker
-    ```
+### How to Get It Running
 
-2.  Set up your Firebase project
-    - Create a project in the Firebase Console and set up a **Firestore Database** in test mode.
-    - Go to **Project settings > Service accounts** and **generate a new private key**. Place the downloaded `.json` file in the project root.
-    - In your Firebase project settings, find your **web app config** details (`firebaseConfig`).
+**1. Set up Firebase**
+* Create a new project in the Firebase Console.
+* Set up a Firestore Database in **test mode**.
+* Go to **Project settings > Service accounts** and **generate a new private key**. Save the downloaded `.json` file.
 
-3.  Configure the project files
-    - In `truck.html`, replace the placeholder `firebaseConfig` variable with your own.
-    - In `tracker.py`, update `SERVICE_ACCOUNT_KEY_FILE` to be the name of your key file and set your `LAPTOP_COORDS`.
+**2. Configure the Project Files**
+* In `truck.html`, replace the placeholder `firebaseConfig` variable with your own web app config from Firebase.
+* In `tracker.py`, update the `SERVICE_ACCOUNT_KEY_FILE` variable to be the name of your downloaded JSON key.
+* Update `LAPTOP_COORDS` with your latitude and longitude.
 
-4.  Install dependencies
-    ```
+**3. Install Dependencies**
+* Run this command in your terminal:
+    ```bash
     pip install google-cloud-firestore geopy
     ```
 
-## Usage
-
-1.  Start a local server in the project directory
-    ```
-    python -m http.server 8000
-    ```
-
-2.  In a new terminal, start ngrok to create a secure tunnel
-    ```
-    ngrok http 8000
-    ```
-
-3.  Open the `https://...` ngrok URL on your mobile phone's browser and add `/truck.html` to the end. Press "Start Transmitting".
-
-4.  Run the tracker script on your computer
-    ```
+**4. Run the Application**
+* Use `ngrok` to create a secure public URL for your `truck.html` file.
+    1.  Start a local server: `python -m http.server 8000`
+    2.  In a new terminal, run: `ngrok http 8000`
+* Open the `https://...` ngrok URL on your phone's browser (e.g., `https://.../truck.html`).
+* Run the tracker script on your computer:
+    ```bash
     python tracker.py
     ```
-
-5.  View the real-time distance updates in your terminal.
-
-## License
-
-ISC
