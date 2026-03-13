@@ -4,7 +4,7 @@
 
 A real-time GPS tracking system that tells residents when the garbage truck is approaching their street — built as a proof-of-concept for a genuine everyday problem across urban and semi-urban India.
 
-**Live Demo →** [truck.html](https://laxmigunashekar.github.io/Live-Vehicle-Tracker/truck.html) · [user.html](https://laxmigunashekar.github.io/Live-Vehicle-Tracker/user.html)
+**Live Demo →** [truck.html](https://laxmigunashekar.github.io/GarbageTrack/truck.html) · [user.html](https://laxmigunashekar.github.io/GarbageTrack/user.html)
 
 ---
 
