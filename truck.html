@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GarbageTrack — Truck Transmitter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --green: #00FF87;
+            --green-dim: #00cc6a;
+            --bg: #0a0f0a;
+            --surface: #111811;
+            --surface2: #182018;
+            --border: #1e2e1e;
+            --text: #e8f0e8;
+            --muted: #5a705a;
+            --red: #ff4545;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 20px;
+            overflow-x: hidden;
+        }
+
+        /* Background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,255,135,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,135,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--green);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-family: 'Space Mono', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--green);
+            letter-spacing: -0.5px;
+        }
+
+        .tagline {
+            font-size: 13px;
+            color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+
+        /* Main card */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        /* Pulse animation area */
+        .pulse-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid var(--green);
+            opacity: 0;
+            animation: none;
+        }
+
+        .pulse-ring:nth-child(1) { width: 100%; height: 100%; }
+        .pulse-ring:nth-child(2) { width: 75%; height: 75%; }
+        .pulse-ring:nth-child(3) { width: 50%; height: 50%; }
+
+        @keyframes pulseOut {
+            0%   { transform: scale(0.5); opacity: 0.6; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+
+        .transmitting .pulse-ring:nth-child(1) {
+            animation: pulseOut 2s ease-out infinite;
+        }
+        .transmitting .pulse-ring:nth-child(2) {
+            animation: pulseOut 2s ease-out 0.5s infinite;
+        }
+        .transmitting .pulse-ring:nth-child(3) {
+            animation: pulseOut 2s ease-out 1s infinite;
+        }
+
+        .center-dot {
+            width: 52px;
+            height: 52px;
+            background: var(--surface2);
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            position: relative;
+            z-index: 2;
+            transition: border-color 0.3s, background 0.3s;
+        }
+
+        .transmitting .center-dot {
+            border-color: var(--green);
+            background: rgba(0, 255, 135, 0.08);
+            box-shadow: 0 0 20px rgba(0, 255, 135, 0.2);
+        }
+
+        .error-state .center-dot {
+            border-color: var(--red);
+            background: rgba(255, 69, 69, 0.08);
+        }
+
+        /* Description */
+        .description {
+            text-align: center;
+        }
+
+        .description h2 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .description p {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            transition: all 0.3s;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--muted);
+            transition: background 0.3s;
+        }
+
+        .transmitting .status-badge {
+            border-color: rgba(0, 255, 135, 0.3);
+            color: var(--green);
+        }
+
+        .transmitting .status-dot {
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: blink 1.2s ease-in-out infinite;
+        }
+
+        .error-state .status-badge {
+            border-color: rgba(255, 69, 69, 0.3);
+            color: var(--red);
+        }
+
+        .error-state .status-dot {
+            background: var(--red);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Coords display */
+        .coords-display {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+
+        .coords-display.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .coord-item {
+            flex: 1;
+            text-align: center;
+        }
+
+        .coord-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .coord-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--green);
+            font-weight: 700;
+        }
+
+        /* Button */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            border: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-start {
+            background: var(--green);
+            color: #0a0f0a;
+        }
+
+        .btn-start:active {
+            transform: scale(0.97);
+        }
+
+        .btn-stop {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid rgba(255, 69, 69, 0.4);
+        }
+
+        .btn-stop:active {
+            transform: scale(0.97);
+            background: rgba(255, 69, 69, 0.05);
+        }
+
+        /* How it works */
+        .info-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .info-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 14px;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .step-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .step-text {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .step-text strong {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--muted);
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">🚛</div>
+            <span class="logo-text">GarbageTrack</span>
+        </div>
+        <p class="tagline">Live Vehicle Transmitter</p>
+    </div>
+
+    <div class="card" id="mainCard">
+
+        <div class="pulse-container" id="pulseArea">
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring"></div>
+            <div class="center-dot">📡</div>
+        </div>
+
+        <div class="description">
+            <h2>This phone is the truck</h2>
+            <p>Your phone's GPS location will be transmitted live to the tracking system, so residents can see when the garbage truck is approaching their area.</p>
+        </div>
+
+        <div class="status-badge" id="statusBadge">
+            <div class="status-dot"></div>
+            <span id="statusText">Waiting to start</span>
+        </div>
+
+        <div class="coords-display" id="coordsDisplay">
+            <div class="coord-item">
+                <div class="coord-label">Latitude</div>
+                <div class="coord-value" id="latValue">—</div>
+            </div>
+            <div class="coord-divider"></div>
+            <div class="coord-item">
+                <div class="coord-label">Longitude</div>
+                <div class="coord-value" id="lonValue">—</div>
+            </div>
+        </div>
+
+        <button class="btn btn-start" id="mainBtn">Start Transmitting</button>
+
+    </div>
+
+    <div class="info-card">
+        <div class="info-title">How it works</div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-text"><strong>This page reads your GPS</strong> using your phone's built-in location sensor.</div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-text"><strong>Coordinates are sent</strong> to a live Firebase database every few seconds.</div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-text"><strong>Residents get alerted</strong> when the truck enters their configured radius.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">GarbageTrack Prototype · Built with Firebase + GPS API</div>
+
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDNFDaa8B4xVcxnUY1p9RZjWx6SS5tW6hY",
+        authDomain: "truck-tracker-demo.firebaseapp.com",
+        projectId: "truck-tracker-demo",
+        storageBucket: "truck-tracker-demo.firebasestorage.app",
+        messagingSenderId: "499636098898",
+        appId: "1:499636098898:web:066b15b0580fb8c2238c8b"
+    };
+
+    const card = document.getElementById('mainCard');
+    const pulseArea = document.getElementById('pulseArea');
+    const statusText = document.getElementById('statusText');
+    const statusBadge = document.getElementById('statusBadge');
+    const coordsDisplay = document.getElementById('coordsDisplay');
+    const latValue = document.getElementById('latValue');
+    const lonValue = document.getElementById('lonValue');
+    const mainBtn = document.getElementById('mainBtn');
+
+    let watchId = null;
+    let isTransmitting = false;
+
+    function setTransmitting(on) {
+        isTransmitting = on;
+        if (on) {
+            pulseArea.classList.add('transmitting');
+            card.classList.remove('error-state');
+            statusText.textContent = 'Transmitting Live';
+            mainBtn.textContent = 'Stop Transmitting';
+            mainBtn.className = 'btn btn-stop';
+        } else {
+            pulseArea.classList.remove('transmitting');
+            statusText.textContent = 'Stopped';
+            mainBtn.textContent = 'Start Transmitting';
+            mainBtn.className = 'btn btn-start';
+            coordsDisplay.classList.remove('visible');
+        }
+    }
+
+    function setError(msg) {
+        pulseArea.classList.remove('transmitting');
+        card.classList.add('error-state');
+        statusText.textContent = msg;
+        mainBtn.textContent = 'Try Again';
+        mainBtn.className = 'btn btn-start';
+        isTransmitting = false;
+    }
+
+    async function updateLocation(lat, lon) {
+        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/truck/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`;
+        const data = {
+            fields: {
+                latitude: { doubleValue: lat },
+                longitude: { doubleValue: lon }
+            }
+        };
+        try {
+            const res = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                if (res.status === 404) {
+                    await createLocation(lat, lon);
+                } else {
+                    throw new Error(`${res.status}`);
+                }
+            }
+            latValue.textContent = lat.toFixed(5);
+            lonValue.textContent = lon.toFixed(5);
+            coordsDisplay.classList.add('visible');
+            card.classList.remove('error-state');
+        } catch (e) {
+            setError('Upload failed — check connection');
+        }
+    }
+
+    async function createLocation(lat, lon) {
+        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/truck?documentId=location`;
+        const data = {
+            fields: {
+                latitude: { doubleValue: lat },
+                longitude: { doubleValue: lon }
+            }
+        };
+        await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    }
+
+    function startTransmitting() {
+        if (!navigator.geolocation) {
+            setError('GPS not available on this device');
+            return;
+        }
+        statusText.textContent = 'Getting GPS fix...';
+        watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                setTransmitting(true);
+                updateLocation(pos.coords.latitude, pos.coords.longitude);
+            },
+            (err) => {
+                setError('Location permission denied');
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    function stopTransmitting() {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+        setTransmitting(false);
+    }
+
+    mainBtn.addEventListener('click', () => {
+        if (isTransmitting) {
+            stopTransmitting();
+        } else {
+            startTransmitting();
+        }
+    });
+</script>
+</body>
+</html>

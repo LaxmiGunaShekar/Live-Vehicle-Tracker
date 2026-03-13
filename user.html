@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GarbageTrack — Resident</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --blue: #00BFFF;
+            --bg: #0a0d14;
+            --surface: #111520;
+            --surface2: #181e2e;
+            --border: #1e2540;
+            --text: #e8eef8;
+            --muted: #4a5878;
+            --green: #00FF87;
+            --red: #ff4545;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 20px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,191,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,191,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header { text-align: center; }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--blue);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-family: 'Space Mono', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--blue);
+        }
+
+        .tagline { font-size: 13px; color: var(--muted); }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .icon-area {
+            width: 80px;
+            height: 80px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .saved .icon-area {
+            border-color: var(--green);
+            box-shadow: 0 0 20px rgba(0,255,135,0.15);
+        }
+
+        .error-state .icon-area {
+            border-color: var(--red);
+        }
+
+        .description { text-align: center; }
+        .description h2 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+        .description p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            transition: all 0.3s;
+        }
+
+        .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--muted);
+            transition: background 0.3s;
+        }
+
+        .saved .status-badge { border-color: rgba(0,255,135,0.3); color: var(--green); }
+        .saved .status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .error-state .status-badge { border-color: rgba(255,69,69,0.3); color: var(--red); }
+        .error-state .status-dot { background: var(--red); }
+
+        .coords-display {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.4s, transform 0.4s;
+        }
+
+        .coords-display.visible { opacity: 1; transform: translateY(0); }
+
+        .coord-item { flex: 1; text-align: center; }
+        .coord-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+        }
+        .coord-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px; color: var(--blue); font-weight: 700;
+        }
+
+        .btn {
+            width: 100%; padding: 16px; border-radius: 14px; border: none;
+            font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+
+        .btn-primary { background: var(--blue); color: #0a0d14; }
+        .btn-primary:active { transform: scale(0.97); }
+        .btn-secondary {
+            background: transparent; color: var(--muted);
+            border: 1px solid var(--border); margin-top: -8px;
+        }
+        .btn-secondary:active { transform: scale(0.97); }
+
+        .info-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .info-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
+        }
+
+        .steps { display: flex; flex-direction: column; gap: 12px; }
+
+        .step { display: flex; align-items: flex-start; gap: 12px; }
+
+        .step-num {
+            width: 22px; height: 22px; border-radius: 6px;
+            background: var(--surface2); border: 1px solid var(--border);
+            font-family: 'Space Mono', monospace; font-size: 10px; color: var(--blue);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 1px;
+        }
+
+        .step-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
+        .step-text strong { color: var(--text); font-weight: 500; }
+
+        .footer { text-align: center; font-size: 11px; color: var(--muted); opacity: 0.5; }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon">🏠</div>
+            <span class="logo-text">GarbageTrack</span>
+        </div>
+        <p class="tagline">Resident Location Setup</p>
+    </div>
+
+    <div class="card" id="mainCard">
+
+        <div class="icon-area" id="iconArea">🏠</div>
+
+        <div class="description">
+            <h2>Set your home location</h2>
+            <p>Share your location once so the system knows where you are. You'll get alerted when the garbage truck is approaching your area.</p>
+        </div>
+
+        <div class="status-badge" id="statusBadge">
+            <div class="status-dot"></div>
+            <span id="statusText">Location not set</span>
+        </div>
+
+        <div class="coords-display" id="coordsDisplay">
+            <div class="coord-item">
+                <div class="coord-label">Latitude</div>
+                <div class="coord-value" id="latValue">—</div>
+            </div>
+            <div class="coord-item">
+                <div class="coord-label">Longitude</div>
+                <div class="coord-value" id="lonValue">—</div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" id="mainBtn">Share My Location</button>
+        <button class="btn btn-secondary" id="updateBtn" style="display:none;">Update Location</button>
+
+    </div>
+
+    <div class="info-card">
+        <div class="info-title">Why we need your location</div>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-text"><strong>Your GPS is saved</strong> to the database as your home coordinates.</div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-text"><strong>The tracker calculates</strong> the distance between you and the truck in real time.</div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-text"><strong>You get alerted</strong> when the truck enters your configured radius. No manual setup needed.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">GarbageTrack Prototype · Built with Firebase + GPS API</div>
+
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDNFDaa8B4xVcxnUY1p9RZjWx6SS5tW6hY",
+        authDomain: "truck-tracker-demo.firebaseapp.com",
+        projectId: "truck-tracker-demo",
+        storageBucket: "truck-tracker-demo.firebasestorage.app",
+        messagingSenderId: "499636098898",
+        appId: "1:499636098898:web:066b15b0580fb8c2238c8b"
+    };
+
+    const card = document.getElementById('mainCard');
+    const iconArea = document.getElementById('iconArea');
+    const statusText = document.getElementById('statusText');
+    const coordsDisplay = document.getElementById('coordsDisplay');
+    const latValue = document.getElementById('latValue');
+    const lonValue = document.getElementById('lonValue');
+    const mainBtn = document.getElementById('mainBtn');
+    const updateBtn = document.getElementById('updateBtn');
+
+    async function saveUserLocation(lat, lon) {
+        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/user/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`;
+        const data = {
+            fields: {
+                latitude: { doubleValue: lat },
+                longitude: { doubleValue: lon }
+            }
+        };
+        try {
+            const res = await fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                if (res.status === 404) {
+                    await createUserLocation(lat, lon);
+                } else {
+                    throw new Error(`${res.status}`);
+                }
+            }
+            // Success!
+            card.classList.remove('error-state');
+            card.classList.add('saved');
+            statusText.textContent = 'Location saved!';
+            iconArea.textContent = '✅';
+            latValue.textContent = lat.toFixed(5);
+            lonValue.textContent = lon.toFixed(5);
+            coordsDisplay.classList.add('visible');
+            mainBtn.style.display = 'none';
+            updateBtn.style.display = 'block';
+        } catch (e) {
+            card.classList.add('error-state');
+            statusText.textContent = 'Failed to save — check connection';
+            iconArea.textContent = '❌';
+        }
+    }
+
+    async function createUserLocation(lat, lon) {
+        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/user?documentId=location`;
+        const data = {
+            fields: {
+                latitude: { doubleValue: lat },
+                longitude: { doubleValue: lon }
+            }
+        };
+        await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    }
+
+    function getAndSaveLocation() {
+        if (!navigator.geolocation) {
+            card.classList.add('error-state');
+            statusText.textContent = 'GPS not available';
+            return;
+        }
+        statusText.textContent = 'Getting your location...';
+        card.classList.remove('saved', 'error-state');
+        iconArea.textContent = '📡';
+        navigator.geolocation.getCurrentPosition(
+            (pos) => saveUserLocation(pos.coords.latitude, pos.coords.longitude),
+            () => {
+                card.classList.add('error-state');
+                statusText.textContent = 'Permission denied';
+                iconArea.textContent = '🏠';
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }
+
+    mainBtn.addEventListener('click', getAndSaveLocation);
+    updateBtn.addEventListener('click', () => {
+        card.classList.remove('saved');
+        iconArea.textContent = '🏠';
+        statusText.textContent = 'Updating location...';
+        updateBtn.style.display = 'none';
+        coordsDisplay.classList.remove('visible');
+        getAndSaveLocation();
+    });
+</script>
+</body>
+</html>
