@@ -5,19 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GarbageTrack — Resident</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
             --blue: #00BFFF;
-            --bg: #0a0d14;
-            --surface: #111520;
-            --surface2: #181e2e;
-            --border: #1e2540;
+            --green: #00FF87;
+            --amber: #FFB800;
+            --red: #ff4545;
+            --bg: #080c12;
+            --surface: #0f1420;
+            --surface2: #161c2e;
+            --border: #1e2846;
             --text: #e8eef8;
             --muted: #4a5878;
-            --green: #00FF87;
-            --red: #ff4545;
+            --muted2: #6b7a9a;
         }
 
         body {
@@ -28,8 +32,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 24px 20px;
+            padding: 28px 20px 48px;
         }
 
         body::before {
@@ -37,9 +40,9 @@
             position: fixed;
             inset: 0;
             background-image:
-                linear-gradient(rgba(0,191,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,191,255,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
+                linear-gradient(rgba(0,191,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,135,0.02) 1px, transparent 1px);
+            background-size: 48px 48px;
             pointer-events: none;
             z-index: 0;
         }
@@ -48,62 +51,80 @@
             position: relative;
             z-index: 1;
             width: 100%;
-            max-width: 380px;
+            max-width: 420px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 18px;
         }
 
-        .header { text-align: center; }
+        /* HEADER */
+        .header { text-align: center; padding: 8px 0 4px; }
 
         .logo {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .logo-icon {
-            width: 36px;
-            height: 36px;
-            background: var(--blue);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
+            width: 38px; height: 38px;
+            background: linear-gradient(135deg, var(--blue), #0090cc);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 16px rgba(0,191,255,0.25);
         }
 
         .logo-text {
             font-family: 'Space Mono', monospace;
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--blue);
+            font-size: 20px; font-weight: 700;
+            background: linear-gradient(90deg, var(--blue), var(--green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .tagline { font-size: 13px; color: var(--muted); }
+        .tagline { font-size: 12px; color: var(--muted); letter-spacing: 0.5px; }
 
+        /* SECTION LABELS */
+        .section-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding-left: 2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* LOCATION CARD */
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 20px;
-            padding: 28px 24px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 24px;
+            gap: 18px;
         }
 
         .icon-area {
-            width: 80px;
-            height: 80px;
+            width: 70px; height: 70px;
             background: var(--surface2);
             border: 1px solid var(--border);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 36px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
 
@@ -111,13 +132,10 @@
             border-color: var(--green);
             box-shadow: 0 0 20px rgba(0,255,135,0.15);
         }
-
-        .error-state .icon-area {
-            border-color: var(--red);
-        }
+        .error-state .icon-area { border-color: var(--red); }
 
         .description { text-align: center; }
-        .description h2 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+        .description h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
         .description p { font-size: 13px; color: var(--muted); line-height: 1.6; }
 
         .status-badge {
@@ -135,23 +153,24 @@
         }
 
         .status-dot {
-            width: 7px; height: 7px;
-            border-radius: 50%;
+            width: 7px; height: 7px; border-radius: 50%;
             background: var(--muted);
             transition: background 0.3s;
         }
 
         .saved .status-badge { border-color: rgba(0,255,135,0.3); color: var(--green); }
-        .saved .status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .saved .status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: blink 2s infinite; }
         .error-state .status-badge { border-color: rgba(255,69,69,0.3); color: var(--red); }
         .error-state .status-dot { background: var(--red); }
+
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
         .coords-display {
             width: 100%;
             background: var(--surface2);
             border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 14px 16px;
+            padding: 13px 16px;
             display: flex;
             justify-content: space-between;
             gap: 12px;
@@ -159,7 +178,6 @@
             transform: translateY(6px);
             transition: opacity 0.4s, transform 0.4s;
         }
-
         .coords-display.visible { opacity: 1; transform: translateY(0); }
 
         .coord-item { flex: 1; text-align: center; }
@@ -170,73 +188,263 @@
         }
         .coord-value {
             font-family: 'Space Mono', monospace;
-            font-size: 12px; color: var(--blue); font-weight: 700;
+            font-size: 12px; font-weight: 700; color: var(--blue);
         }
 
         .btn {
-            width: 100%; padding: 16px; border-radius: 14px; border: none;
+            width: 100%; padding: 14px; border-radius: 14px; border: none;
             font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
             cursor: pointer; transition: all 0.2s;
         }
-
-        .btn-primary { background: var(--blue); color: #0a0d14; }
-        .btn-primary:active { transform: scale(0.97); }
+        .btn-blue { background: var(--blue); color: #080c12; }
+        .btn-blue:active { transform: scale(0.97); }
         .btn-secondary {
             background: transparent; color: var(--muted);
-            border: 1px solid var(--border); margin-top: -8px;
+            border: 1px solid var(--border); margin-top: -6px;
         }
         .btn-secondary:active { transform: scale(0.97); }
 
-        .info-card {
+        /* DASHBOARD */
+        .dashboard { display: flex; flex-direction: column; gap: 13px; }
+
+        /* Locked state */
+        .dashboard-locked {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px 24px;
+            text-align: center;
+            color: var(--muted);
+        }
+        .dashboard-locked .lock-icon { font-size: 30px; margin-bottom: 12px; }
+        .dashboard-locked p { font-size: 13px; line-height: 1.7; }
+
+        /* Alert banner */
+        .alert-banner {
+            border-radius: 16px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            transition: all 0.4s;
+        }
+
+        .alert-banner.nearby {
+            background: rgba(255,184,0,0.07);
+            border-color: rgba(255,184,0,0.4);
+            animation: alert-glow 2s ease-in-out infinite;
+        }
+
+        .alert-banner.far {
+            background: rgba(0,255,135,0.05);
+            border-color: rgba(0,255,135,0.2);
+        }
+
+        .alert-banner.waiting { opacity: 0.55; }
+
+        @keyframes alert-glow {
+            0%,100%{ box-shadow: 0 0 0 0 rgba(255,184,0,0.15); }
+            50%{ box-shadow: 0 0 24px 4px rgba(255,184,0,0.08); }
+        }
+
+        .alert-icon { font-size: 26px; flex-shrink: 0; }
+        .alert-content { flex: 1; }
+        .alert-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+        .alert-sub { font-size: 12px; color: var(--muted); }
+        .alert-banner.nearby .alert-title { color: var(--amber); }
+        .alert-banner.far .alert-title { color: var(--green); }
+        .alert-banner.waiting .alert-title { color: var(--muted2); }
+
+        /* Stats row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 20px;
+            padding: 16px;
         }
 
-        .info-title {
+        .stat-label {
             font-family: 'Space Mono', monospace;
-            font-size: 10px; color: var(--muted);
-            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 14px;
+            font-size: 9px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
         }
 
-        .steps { display: flex; flex-direction: column; gap: 12px; }
+        .stat-dot { width: 6px; height: 6px; border-radius: 50%; }
 
-        .step { display: flex; align-items: flex-start; gap: 12px; }
-
-        .step-num {
-            width: 22px; height: 22px; border-radius: 6px;
-            background: var(--surface2); border: 1px solid var(--border);
-            font-family: 'Space Mono', monospace; font-size: 10px; color: var(--blue);
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; margin-top: 1px;
+        .stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--blue);
+            line-height: 1;
         }
 
-        .step-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
-        .step-text strong { color: var(--text); font-weight: 500; }
+        .stat-unit {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: 'DM Sans', sans-serif;
+            margin-top: 3px;
+        }
 
-        .footer { text-align: center; font-size: 11px; color: var(--muted); opacity: 0.5; }
+        /* Truck GPS coords */
+        .truck-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px 18px;
+        }
+
+        .truck-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .truck-card-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .live-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0,255,135,0.07);
+            border: 1px solid rgba(0,255,135,0.2);
+            border-radius: 999px;
+            padding: 3px 9px;
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--green);
+        }
+
+        .live-dot {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: blink 1.5s infinite;
+        }
+
+        .truck-coords-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .tc-item {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .tc-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+
+        .tc-val {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--green);
+            font-weight: 700;
+        }
+
+        /* Map */
+        .map-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .map-header {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .map-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .map-legend {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+        #map { height: 240px; }
+
+        /* Make leaflet tiles dark */
+        .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) saturate(1.1); }
+        .leaflet-container { background: #0a0d14 !important; }
+
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--muted);
+            opacity: 0.35;
+            padding-top: 4px;
+        }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
 
+    <!-- HEADER -->
     <div class="header">
         <div class="logo">
-            <div class="logo-icon">🏠</div>
+            <div class="logo-icon">🗑️</div>
             <span class="logo-text">GarbageTrack</span>
         </div>
-        <p class="tagline">Resident Location Setup</p>
+        <p class="tagline">Resident Dashboard</p>
     </div>
 
-    <div class="card" id="mainCard">
+    <!-- MY LOCATION SECTION -->
+    <div class="section-label">My Location</div>
 
+    <div class="card" id="mainCard">
         <div class="icon-area" id="iconArea">🏠</div>
 
         <div class="description">
             <h2>Set your home location</h2>
-            <p>Share your location once so the system knows where you are. You'll get alerted when the garbage truck is approaching your area.</p>
+            <p>Share your GPS once so the system knows where you are. The live tracker below will activate automatically.</p>
         </div>
 
         <div class="status-badge" id="statusBadge">
@@ -255,106 +463,192 @@
             </div>
         </div>
 
-        <button class="btn btn-primary" id="mainBtn">Share My Location</button>
+        <button class="btn btn-blue" id="mainBtn">Share My Location</button>
         <button class="btn btn-secondary" id="updateBtn" style="display:none;">Update Location</button>
-
     </div>
 
-    <div class="info-card">
-        <div class="info-title">Why we need your location</div>
-        <div class="steps">
-            <div class="step">
-                <div class="step-num">1</div>
-                <div class="step-text"><strong>Your GPS is saved</strong> to the database as your home coordinates.</div>
-            </div>
-            <div class="step">
-                <div class="step-num">2</div>
-                <div class="step-text"><strong>The tracker calculates</strong> the distance between you and the truck in real time.</div>
-            </div>
-            <div class="step">
-                <div class="step-num">3</div>
-                <div class="step-text"><strong>You get alerted</strong> when the truck enters your configured radius. No manual setup needed.</div>
+    <!-- LIVE TRACKER SECTION -->
+    <div class="section-label" style="margin-top:4px;">Live Tracker</div>
+
+    <!-- Locked placeholder -->
+    <div class="dashboard-locked" id="dashLocked">
+        <div class="lock-icon">🔒</div>
+        <p>Set your home location above to activate the live tracker. You'll see the truck's position, distance, and get alerts right here.</p>
+    </div>
+
+    <!-- Dashboard (shown after location is set) -->
+    <div class="dashboard" id="dashBoard" style="display:none;">
+
+        <!-- Alert -->
+        <div class="alert-banner waiting" id="alertBanner">
+            <div class="alert-icon" id="alertIcon">📡</div>
+            <div class="alert-content">
+                <div class="alert-title" id="alertTitle">Waiting for truck signal...</div>
+                <div class="alert-sub" id="alertSub">Updates every 3 seconds automatically</div>
             </div>
         </div>
+
+        <!-- Distance + Status -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">
+                    <span class="stat-dot" style="background:var(--blue)"></span>
+                    Distance
+                </div>
+                <div class="stat-value" id="distValue">—</div>
+                <div class="stat-unit" id="distUnit">waiting...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">
+                    <span class="stat-dot" style="background:var(--green); animation:blink 2s infinite"></span>
+                    Truck
+                </div>
+                <div class="stat-value" style="font-size:14px; color:var(--muted2);" id="truckStatus">Offline</div>
+                <div class="stat-unit" id="lastUpdate"></div>
+            </div>
+        </div>
+
+        <!-- Truck GPS -->
+        <div class="truck-card">
+            <div class="truck-card-header">
+                <div class="truck-card-title">🚛 Truck GPS</div>
+                <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+            </div>
+            <div class="truck-coords-grid">
+                <div class="tc-item">
+                    <div class="tc-label">Latitude</div>
+                    <div class="tc-val" id="truckLat">—</div>
+                </div>
+                <div class="tc-item">
+                    <div class="tc-label">Longitude</div>
+                    <div class="tc-val" id="truckLon">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="map-card">
+            <div class="map-header">
+                <div class="map-title">📍 Live Map</div>
+                <div class="map-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--blue)"></div>
+                        You
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--green)"></div>
+                        Truck
+                    </div>
+                </div>
+            </div>
+            <div id="map"></div>
+        </div>
+
     </div>
 
-    <div class="footer">GarbageTrack Prototype · Built with Firebase + GPS API</div>
+    <div class="footer">GarbageTrack Prototype · Firebase + GPS API + OpenStreetMap</div>
 
 </div>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyDNFDaa8B4xVcxnUY1p9RZjWx6SS5tW6hY",
-        authDomain: "truck-tracker-demo.firebaseapp.com",
-        projectId: "truck-tracker-demo",
-        storageBucket: "truck-tracker-demo.firebasestorage.app",
-        messagingSenderId: "499636098898",
-        appId: "1:499636098898:web:066b15b0580fb8c2238c8b"
-    };
+    const PROJECT_ID = "truck-tracker-demo";
+    const ALERT_RADIUS_M = 500;
 
-    const card = document.getElementById('mainCard');
-    const iconArea = document.getElementById('iconArea');
-    const statusText = document.getElementById('statusText');
-    const coordsDisplay = document.getElementById('coordsDisplay');
-    const latValue = document.getElementById('latValue');
-    const lonValue = document.getElementById('lonValue');
-    const mainBtn = document.getElementById('mainBtn');
-    const updateBtn = document.getElementById('updateBtn');
+    let userLat = null, userLon = null;
+    let locationSaved = false;
+    let map = null, userMarker = null, truckMarker = null, routeLine = null;
 
-    async function saveUserLocation(lat, lon) {
-        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/user/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`;
-        const data = {
-            fields: {
-                latitude: { doubleValue: lat },
-                longitude: { doubleValue: lon }
-            }
-        };
-        try {
-            const res = await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (!res.ok) {
-                if (res.status === 404) {
-                    await createUserLocation(lat, lon);
-                } else {
-                    throw new Error(`${res.status}`);
-                }
-            }
-            // Success!
-            card.classList.remove('error-state');
-            card.classList.add('saved');
-            statusText.textContent = 'Location saved!';
-            iconArea.textContent = '✅';
-            latValue.textContent = lat.toFixed(5);
-            lonValue.textContent = lon.toFixed(5);
-            coordsDisplay.classList.add('visible');
-            mainBtn.style.display = 'none';
-            updateBtn.style.display = 'block';
-        } catch (e) {
-            card.classList.add('error-state');
-            statusText.textContent = 'Failed to save — check connection';
-            iconArea.textContent = '❌';
-        }
+    // DOM
+    const card        = document.getElementById('mainCard');
+    const iconArea    = document.getElementById('iconArea');
+    const statusText  = document.getElementById('statusText');
+    const coordsDisp  = document.getElementById('coordsDisplay');
+    const latValue    = document.getElementById('latValue');
+    const lonValue    = document.getElementById('lonValue');
+    const mainBtn     = document.getElementById('mainBtn');
+    const updateBtn   = document.getElementById('updateBtn');
+    const dashLocked  = document.getElementById('dashLocked');
+    const dashBoard   = document.getElementById('dashBoard');
+    const alertBanner = document.getElementById('alertBanner');
+    const alertIcon   = document.getElementById('alertIcon');
+    const alertTitle  = document.getElementById('alertTitle');
+    const alertSub    = document.getElementById('alertSub');
+    const distValue   = document.getElementById('distValue');
+    const distUnit    = document.getElementById('distUnit');
+    const truckStatus = document.getElementById('truckStatus');
+    const lastUpdate  = document.getElementById('lastUpdate');
+    const truckLat    = document.getElementById('truckLat');
+    const truckLon    = document.getElementById('truckLon');
+
+    // Haversine
+    function haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 +
+                  Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    async function createUserLocation(lat, lon) {
-        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/user?documentId=location`;
-        const data = {
-            fields: {
-                latitude: { doubleValue: lat },
-                longitude: { doubleValue: lon }
-            }
-        };
-        await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+    function fmtDist(m) {
+        return m >= 1000 ? { val: (m/1000).toFixed(1), unit: 'km away' } : { val: Math.round(m), unit: 'm away' };
+    }
+
+    // Init map
+    function initMap() {
+        map = L.map('map', { zoomControl: true, scrollWheelZoom: false }).setView([userLat, userLon], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap', maxZoom: 19
+        }).addTo(map);
+
+        const homeIcon = L.divIcon({
+            html: `<div style="width:14px;height:14px;background:#00BFFF;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 10px rgba(0,191,255,0.7)"></div>`,
+            iconSize: [14,14], iconAnchor: [7,7], className: ''
         });
+        userMarker = L.marker([userLat, userLon], { icon: homeIcon })
+            .addTo(map).bindPopup('<b>🏠 Your Home</b>');
     }
 
-    function getAndSaveLocation() {
+    function updateMap(tLat, tLon) {
+        if (!map) return;
+        const truckIcon = L.divIcon({
+            html: `<div style="font-size:24px;line-height:1;filter:drop-shadow(0 0 6px rgba(0,255,135,0.6))">🚛</div>`,
+            iconSize: [28,28], iconAnchor: [14,14], className: ''
+        });
+        if (truckMarker) truckMarker.setLatLng([tLat, tLon]);
+        else truckMarker = L.marker([tLat, tLon], { icon: truckIcon }).addTo(map).bindPopup('<b>🚛 Garbage Truck</b>');
+
+        if (routeLine) map.removeLayer(routeLine);
+        routeLine = L.polyline([[userLat, userLon],[tLat, tLon]], {
+            color: '#00BFFF', weight: 2, dashArray: '6 5', opacity: 0.5
+        }).addTo(map);
+
+        map.fitBounds(L.latLngBounds([[userLat,userLon],[tLat,tLon]]), { padding: [50,50] });
+    }
+
+    // Activate dashboard
+    function activateDashboard() {
+        dashLocked.style.display = 'none';
+        dashBoard.style.display = 'flex';
+        setTimeout(() => { initMap(); startPolling(); }, 200);
+    }
+
+    // Firebase save
+    async function saveToFirebase(lat, lon) {
+        const base = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+        const patchUrl = `${base}/user/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`;
+        const body = { fields: { latitude: { doubleValue: lat }, longitude: { doubleValue: lon } } };
+
+        let res = await fetch(patchUrl, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        if (!res.ok && res.status === 404) {
+            res = await fetch(`${base}/user?documentId=location`, {
+                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+            });
+        }
+        if (!res.ok) throw new Error(res.status);
+    }
+
+    async function getAndSaveLocation() {
         if (!navigator.geolocation) {
             card.classList.add('error-state');
             statusText.textContent = 'GPS not available';
@@ -363,26 +657,112 @@
         statusText.textContent = 'Getting your location...';
         card.classList.remove('saved', 'error-state');
         iconArea.textContent = '📡';
-        navigator.geolocation.getCurrentPosition(
-            (pos) => saveUserLocation(pos.coords.latitude, pos.coords.longitude),
-            () => {
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const lat = pos.coords.latitude, lon = pos.coords.longitude;
+            try {
+                await saveToFirebase(lat, lon);
+                userLat = lat; userLon = lon;
+                card.classList.add('saved');
+                statusText.textContent = 'Location saved!';
+                iconArea.textContent = '✅';
+                latValue.textContent = lat.toFixed(5);
+                lonValue.textContent = lon.toFixed(5);
+                coordsDisp.classList.add('visible');
+                mainBtn.style.display = 'none';
+                updateBtn.style.display = 'block';
+
+                if (!locationSaved) {
+                    locationSaved = true;
+                    activateDashboard();
+                } else if (userMarker) {
+                    userMarker.setLatLng([lat, lon]);
+                }
+            } catch(e) {
                 card.classList.add('error-state');
-                statusText.textContent = 'Permission denied';
-                iconArea.textContent = '🏠';
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
+                statusText.textContent = 'Save failed — check connection';
+                iconArea.textContent = '❌';
+            }
+        }, () => {
+            card.classList.add('error-state');
+            statusText.textContent = 'Permission denied';
+            iconArea.textContent = '🏠';
+        }, { enableHighAccuracy: true, timeout: 10000 });
     }
 
     mainBtn.addEventListener('click', getAndSaveLocation);
     updateBtn.addEventListener('click', () => {
         card.classList.remove('saved');
         iconArea.textContent = '🏠';
-        statusText.textContent = 'Updating location...';
+        statusText.textContent = 'Updating...';
         updateBtn.style.display = 'none';
-        coordsDisplay.classList.remove('visible');
+        coordsDisp.classList.remove('visible');
         getAndSaveLocation();
     });
+
+    // Poll truck location
+    let lastNearbyNotif = 0;
+
+    async function fetchTruck() {
+        try {
+            const res = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/truck/location`);
+            if (!res.ok) throw new Error(res.status);
+            const data = await res.json();
+            const tLat = data.fields?.latitude?.doubleValue;
+            const tLon = data.fields?.longitude?.doubleValue;
+            if (tLat == null || tLon == null) throw new Error('no coords');
+
+            truckLat.textContent = tLat.toFixed(5);
+            truckLon.textContent = tLon.toFixed(5);
+            truckStatus.textContent = 'Online';
+            truckStatus.style.color = 'var(--green)';
+            lastUpdate.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+            const dist = haversine(userLat, userLon, tLat, tLon);
+            const { val, unit } = fmtDist(dist);
+            distValue.textContent = val;
+            distUnit.textContent = unit;
+
+            if (dist <= ALERT_RADIUS_M) {
+                alertBanner.className = 'alert-banner nearby';
+                alertIcon.textContent = '🔔';
+                alertTitle.textContent = 'Truck is nearby!';
+                alertSub.textContent = `Only ${Math.round(dist)}m away — get ready with your garbage!`;
+                // Browser notification (once per minute)
+                const now = Date.now();
+                if (now - lastNearbyNotif > 60000 && Notification.permission === 'granted') {
+                    new Notification('🚛 GarbageTrack Alert', { body: `Garbage truck is ${Math.round(dist)}m away!` });
+                    lastNearbyNotif = now;
+                }
+            } else {
+                alertBanner.className = 'alert-banner far';
+                alertIcon.textContent = '✅';
+                alertTitle.textContent = 'Truck is far away';
+                alertSub.textContent = `${val}${unit.includes('km')?'km':'m'} — you have time to prepare`;
+            }
+
+            updateMap(tLat, tLon);
+        } catch(e) {
+            truckLat.textContent = '—';
+            truckLon.textContent = '—';
+            truckStatus.textContent = 'Offline';
+            truckStatus.style.color = 'var(--muted)';
+            distValue.textContent = '—';
+            distUnit.textContent = 'no signal';
+            alertBanner.className = 'alert-banner waiting';
+            alertIcon.textContent = '📡';
+            alertTitle.textContent = 'Waiting for truck signal...';
+            alertSub.textContent = 'Open truck.html on the driver\'s phone';
+        }
+    }
+
+    function startPolling() {
+        fetchTruck();
+        setInterval(fetchTruck, 3000);
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }
 </script>
 </body>
 </html>
