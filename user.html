@@ -756,7 +756,7 @@
                 alertSub.textContent = `Only ${Math.round(dist)}m away — get ready with your garbage!`;
                 const now = Date.now();
                 if (now - lastNearbyNotif > 60000 && Notification.permission === 'granted') {
-                    new Notification('🚛 GarbageTrack Alert', { body: `Truck is ${Math.round(dist)}m away!` });
+                    try { new Notification('🚛 GarbageTrack Alert', { body: `Truck is ${Math.round(dist)}m away!` }); } catch(ne) {}
                     lastNearbyNotif = now;
                 }
             } else {
@@ -780,7 +780,7 @@
             alertBanner.className = 'alert-banner waiting';
             alertIcon.textContent = '📡';
             alertTitle.textContent = 'Waiting for truck signal...';
-            alertSub.textContent = 'ERR: ' + e.message;
+            alertSub.textContent = "Open truck.html on the driver's phone";
         }
     }
 
