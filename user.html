@@ -421,6 +421,55 @@
             opacity: 0.35;
             padding-top: 4px;
         }
+
+        .btn-stop {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid rgba(255,69,69,0.3);
+            margin-top: -6px;
+        }
+        .btn-stop:active { transform: scale(0.97); }
+
+        /* ETA card */
+        .eta-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .eta-icon { font-size: 26px; flex-shrink: 0; }
+        .eta-content { flex: 1; }
+        .eta-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 4px;
+        }
+        .eta-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--amber);
+        }
+        .eta-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .ml-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255,184,0,0.08);
+            border: 1px solid rgba(255,184,0,0.25);
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--amber);
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -465,6 +514,7 @@
 
         <button class="btn btn-blue" id="mainBtn">Share My Location</button>
         <button class="btn btn-secondary" id="updateBtn" style="display:none;">Update Location</button>
+        <button class="btn btn-stop" id="stopBtn" style="display:none;">🛑 Stop Sharing Location</button>
     </div>
 
     <!-- LIVE TRACKER SECTION -->
@@ -506,6 +556,17 @@
                 <div class="stat-value" style="font-size:14px; color:var(--muted2);" id="truckStatus">Offline</div>
                 <div class="stat-unit" id="lastUpdate"></div>
             </div>
+        </div>
+
+        <!-- ETA Card (ML Prediction) -->
+        <div class="eta-card" id="etaCard" style="display:none;">
+            <div class="eta-icon">⏱️</div>
+            <div class="eta-content">
+                <div class="eta-label">ML Estimated Arrival</div>
+                <div class="eta-value" id="etaValue">—</div>
+                <div class="eta-sub" id="etaSub">Calculating trajectory...</div>
+            </div>
+            <div class="ml-badge">🤖 ML</div>
         </div>
 
         <!-- Truck GPS -->
@@ -558,8 +619,12 @@
     let locationSaved = false;
     let map = null, mapReady = false;
     let userMarker = null, truckMarker = null, routeLine = null;
+    let audioCtx = null;
+    let lastAlertTime = 0;
+    let wasNearby = false;
+    let pollingInterval = null;
 
-    // DOM
+    // ── DOM refs ──
     const card        = document.getElementById('mainCard');
     const iconArea    = document.getElementById('iconArea');
     const statusText  = document.getElementById('statusText');
@@ -568,6 +633,7 @@
     const lonValue    = document.getElementById('lonValue');
     const mainBtn     = document.getElementById('mainBtn');
     const updateBtn   = document.getElementById('updateBtn');
+    const stopBtn     = document.getElementById('stopBtn');
     const dashLocked  = document.getElementById('dashLocked');
     const dashBoard   = document.getElementById('dashBoard');
     const alertBanner = document.getElementById('alertBanner');
@@ -580,8 +646,11 @@
     const lastUpdate  = document.getElementById('lastUpdate');
     const truckLat    = document.getElementById('truckLat');
     const truckLon    = document.getElementById('truckLon');
+    const etaCard     = document.getElementById('etaCard');
+    const etaValue    = document.getElementById('etaValue');
+    const etaSub      = document.getElementById('etaSub');
 
-    // Haversine distance in meters
+    // ── HAVERSINE ──
     function haversine(lat1, lon1, lat2, lon2) {
         const R = 6371000;
         const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -597,8 +666,112 @@
             : { val: Math.round(m), unit: 'm away' };
     }
 
+    // ── SOUND ALERT (Web Audio API — no file needed) ──
+    function playAlert() {
+        try {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            // Play 3 beeps
+            [0, 0.35, 0.7].forEach(delay => {
+                const osc  = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.value = 880;
+                const t = audioCtx.currentTime + delay;
+                gain.gain.setValueAtTime(0.6, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+                osc.start(t);
+                osc.stop(t + 0.25);
+            });
+        } catch(e) {}
+    }
+
+    // ── ML: LINEAR REGRESSION ETA ──
+    // Stores last 6 truck GPS positions with timestamps
+    const posBuffer = [];
+    const BUFFER_SIZE = 6;
+
+    function addToBuffer(lat, lon) {
+        posBuffer.push({ lat, lon, t: Date.now() / 1000 });
+        if (posBuffer.length > BUFFER_SIZE) posBuffer.shift();
+    }
+
+    // Simple linear regression: y = slope * t + intercept
+    function linearRegression(pts) {
+        const n = pts.length;
+        if (n < 2) return null;
+        const tNorm = pts[0].t; // normalize to avoid floating point issues
+        const normalized = pts.map(p => ({ t: p.t - tNorm, y: p.y }));
+        const sumT  = normalized.reduce((s, p) => s + p.t, 0);
+        const sumY  = normalized.reduce((s, p) => s + p.y, 0);
+        const sumTT = normalized.reduce((s, p) => s + p.t * p.t, 0);
+        const sumTY = normalized.reduce((s, p) => s + p.t * p.y, 0);
+        const denom = n * sumTT - sumT * sumT;
+        if (Math.abs(denom) < 1e-12) return null;
+        const slope     = (n * sumTY - sumT * sumY) / denom;
+        const intercept = (sumY - slope * sumT) / n;
+        return { slope, intercept };
+    }
+
+    function predictETA(tLat, tLon) {
+        if (posBuffer.length < 3) return null;
+
+        // Run linear regression separately on lat and lon over time
+        const ptsLat = posBuffer.map(p => ({ t: p.t, y: p.lat }));
+        const ptsLon = posBuffer.map(p => ({ t: p.t, y: p.lon }));
+        const regLat = linearRegression(ptsLat);
+        const regLon = linearRegression(ptsLon);
+        if (!regLat || !regLon) return null;
+
+        // Velocity in degrees/second
+        const vLatDeg = regLat.slope;
+        const vLonDeg = regLon.slope;
+
+        // Convert degrees/sec to meters/sec
+        const latToM = 111320;
+        const lonToM = 111320 * Math.cos(tLat * Math.PI / 180);
+        const speedMS = Math.sqrt((vLatDeg * latToM) ** 2 + (vLonDeg * lonToM) ** 2);
+
+        if (speedMS < 0.3) return null; // truck is stationary, no ETA
+
+        const dist = haversine(userLat, userLon, tLat, tLon);
+        return dist / speedMS; // ETA in seconds
+    }
+
+    function updateETA(tLat, tLon) {
+        const etaSeconds = predictETA(tLat, tLon);
+        etaCard.style.display = 'flex';
+
+        if (etaSeconds === null) {
+            if (posBuffer.length < 3) {
+                etaValue.textContent = '...';
+                etaSub.textContent = 'Collecting data (' + posBuffer.length + '/3 readings)';
+            } else {
+                etaValue.textContent = 'Stopped';
+                etaSub.textContent = 'Truck not moving';
+            }
+            return;
+        }
+
+        const mins = Math.round(etaSeconds / 60);
+        const secs = Math.round(etaSeconds);
+
+        if (secs < 30) {
+            etaValue.textContent = 'NOW';
+            etaSub.textContent = 'Truck is arriving!';
+        } else if (secs < 60) {
+            etaValue.textContent = '< 1 min';
+            etaSub.textContent = 'Get ready immediately!';
+        } else {
+            etaValue.textContent = '~' + mins + ' min';
+            etaSub.textContent = 'Based on current speed & direction';
+        }
+    }
+
     // ── MAP ──
-    // Single init, guarded by mapReady flag
     function initMap() {
         if (mapReady) return;
         mapReady = true;
@@ -614,10 +787,8 @@
             });
             userMarker = L.marker([userLat, userLon], { icon: homeIcon })
                 .addTo(map).bindPopup('<b>🏠 Your Home</b>');
-            // Force redraw after render
             setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 400);
         } catch(e) {
-            // Reset so a retry is possible
             mapReady = false;
             map = null;
         }
@@ -641,17 +812,24 @@
         } catch(e) {}
     }
 
-    // ── DASHBOARD ACTIVATION ──
+    // ── ACTIVATE DASHBOARD ──
     function activateDashboard() {
         dashLocked.style.display = 'none';
         dashBoard.style.display = 'flex';
-        // Polling starts immediately — completely independent of map
         startPolling();
-        // Map inits after a delay to let mobile browser finish rendering
         setTimeout(initMap, 800);
     }
 
-    // ── FIREBASE ──
+    function deactivateDashboard() {
+        dashBoard.style.display = 'none';
+        dashLocked.style.display = 'block';
+        if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+        posBuffer.length = 0;
+        map = null; mapReady = false;
+        userMarker = null; truckMarker = null; routeLine = null;
+    }
+
+    // ── FIREBASE SAVE ──
     async function saveToFirebase(lat, lon) {
         const base = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
         const body = { fields: { latitude: { doubleValue: lat }, longitude: { doubleValue: lon } } };
@@ -667,7 +845,12 @@
         if (!res.ok) throw new Error(res.status);
     }
 
-    // ── LOCATION ──
+    async function deleteFromFirebase() {
+        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/user/location`;
+        try { await fetch(url, { method: 'DELETE' }); } catch(e) {}
+    }
+
+    // ── LOCATION SHARING ──
     async function getAndSaveLocation() {
         if (!navigator.geolocation) {
             card.classList.add('error-state');
@@ -691,6 +874,7 @@
                 coordsDisp.classList.add('visible');
                 mainBtn.style.display = 'none';
                 updateBtn.style.display = 'block';
+                stopBtn.style.display = 'block';
                 if (!locationSaved) {
                     locationSaved = true;
                     activateDashboard();
@@ -709,18 +893,33 @@
         }, { enableHighAccuracy: true, timeout: 10000 });
     }
 
+    async function stopSharingLocation() {
+        await deleteFromFirebase();
+        userLat = null; userLon = null;
+        locationSaved = false;
+        card.classList.remove('saved', 'error-state');
+        iconArea.textContent = '🏠';
+        statusText.textContent = 'Location not set';
+        coordsDisp.classList.remove('visible');
+        mainBtn.style.display = 'block';
+        updateBtn.style.display = 'none';
+        stopBtn.style.display = 'none';
+        deactivateDashboard();
+    }
+
     mainBtn.addEventListener('click', getAndSaveLocation);
     updateBtn.addEventListener('click', () => {
         card.classList.remove('saved');
         iconArea.textContent = '🏠';
         statusText.textContent = 'Updating...';
         updateBtn.style.display = 'none';
+        stopBtn.style.display = 'none';
         coordsDisp.classList.remove('visible');
         getAndSaveLocation();
     });
+    stopBtn.addEventListener('click', stopSharingLocation);
 
     // ── POLLING ──
-    let lastNearbyNotif = 0;
     let pollingStarted = false;
 
     async function fetchTruck() {
@@ -733,7 +932,7 @@
             const fields = data.fields || {};
             const tLat = fields.latitude ? fields.latitude.doubleValue : null;
             const tLon = fields.longitude ? fields.longitude.doubleValue : null;
-            if (tLat == null || tLon == null) throw new Error('no coords in response');
+            if (tLat == null || tLon == null) throw new Error('no coords');
 
             // Update truck display
             truckLat.textContent = tLat.toFixed(5);
@@ -742,31 +941,42 @@
             truckStatus.style.color = 'var(--green)';
             lastUpdate.textContent = 'Updated ' + new Date().toLocaleTimeString();
 
-            // Calculate and display distance
+            // Distance
             const dist = haversine(userLat, userLon, tLat, tLon);
             const { val, unit } = fmtDist(dist);
             distValue.textContent = val;
             distUnit.textContent = unit;
 
-            // Alert
-            if (dist <= ALERT_RADIUS_M) {
+            // ML: add to buffer and predict ETA
+            addToBuffer(tLat, tLon);
+            updateETA(tLat, tLon);
+
+            // Alert + sound
+            const nearby = dist <= ALERT_RADIUS_M;
+            if (nearby) {
                 alertBanner.className = 'alert-banner nearby';
                 alertIcon.textContent = '🔔';
                 alertTitle.textContent = 'Truck is nearby!';
                 alertSub.textContent = `Only ${Math.round(dist)}m away — get ready with your garbage!`;
+                // Play sound only when first entering nearby zone
+                if (!wasNearby) {
+                    playAlert();
+                    wasNearby = true;
+                }
+                // Browser notification (once per minute, Android safe)
                 const now = Date.now();
-                if (now - lastNearbyNotif > 60000 && Notification.permission === 'granted') {
+                if (now - lastAlertTime > 60000 && Notification.permission === 'granted') {
                     try { new Notification('🚛 GarbageTrack Alert', { body: `Truck is ${Math.round(dist)}m away!` }); } catch(ne) {}
-                    lastNearbyNotif = now;
+                    lastAlertTime = now;
                 }
             } else {
                 alertBanner.className = 'alert-banner far';
                 alertIcon.textContent = '✅';
                 alertTitle.textContent = 'Truck is far away';
                 alertSub.textContent = `${val} ${unit} — you have time to prepare`;
+                wasNearby = false;
             }
 
-            // Try to init map if not done yet, then update it
             if (!mapReady) initMap();
             updateMap(tLat, tLon);
 
@@ -788,7 +998,7 @@
         if (pollingStarted) return;
         pollingStarted = true;
         fetchTruck();
-        setInterval(fetchTruck, 3000);
+        pollingInterval = setInterval(fetchTruck, 3000);
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
         }
