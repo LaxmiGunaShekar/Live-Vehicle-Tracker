@@ -556,7 +556,8 @@
 
     let userLat = null, userLon = null;
     let locationSaved = false;
-    let map = null, userMarker = null, truckMarker = null, routeLine = null;
+    let map = null, mapReady = false;
+    let userMarker = null, truckMarker = null, routeLine = null;
 
     // DOM
     const card        = document.getElementById('mainCard');
@@ -580,7 +581,7 @@
     const truckLat    = document.getElementById('truckLat');
     const truckLon    = document.getElementById('truckLon');
 
-    // Haversine
+    // Haversine distance in meters
     function haversine(lat1, lon1, lat2, lon2) {
         const R = 6371000;
         const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -591,69 +592,73 @@
     }
 
     function fmtDist(m) {
-        return m >= 1000 ? { val: (m/1000).toFixed(1), unit: 'km away' } : { val: Math.round(m), unit: 'm away' };
+        return m >= 1000
+            ? { val: (m/1000).toFixed(1), unit: 'km away' }
+            : { val: Math.round(m), unit: 'm away' };
     }
 
-    // Init map
+    // ── MAP ──
+    // Single init, guarded by mapReady flag
     function initMap() {
-        map = L.map('map', { zoomControl: true, scrollWheelZoom: false }).setView([userLat, userLon], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap', maxZoom: 19
-        }).addTo(map);
-
-        const homeIcon = L.divIcon({
-            html: `<div style="width:14px;height:14px;background:#00BFFF;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 10px rgba(0,191,255,0.7)"></div>`,
-            iconSize: [14,14], iconAnchor: [7,7], className: ''
-        });
-        userMarker = L.marker([userLat, userLon], { icon: homeIcon })
-            .addTo(map).bindPopup('<b>🏠 Your Home</b>');
+        if (mapReady) return;
+        mapReady = true;
+        try {
+            map = L.map('map', { zoomControl: true, scrollWheelZoom: false })
+                   .setView([userLat, userLon], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap', maxZoom: 19
+            }).addTo(map);
+            const homeIcon = L.divIcon({
+                html: `<div style="width:14px;height:14px;background:#00BFFF;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 10px rgba(0,191,255,0.7)"></div>`,
+                iconSize: [14,14], iconAnchor: [7,7], className: ''
+            });
+            userMarker = L.marker([userLat, userLon], { icon: homeIcon })
+                .addTo(map).bindPopup('<b>🏠 Your Home</b>');
+            // Force redraw after render
+            setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 400);
+        } catch(e) {
+            // Reset so a retry is possible
+            mapReady = false;
+            map = null;
+        }
     }
 
     function updateMap(tLat, tLon) {
-        if (!map) {
-            // Map not ready yet — try to init now
-            try { initMap(); if (map) map.invalidateSize(); } catch(e) {}
-            if (!map) return;
-        }
-        const truckIcon = L.divIcon({
-            html: `<div style="font-size:24px;line-height:1;filter:drop-shadow(0 0 6px rgba(0,255,135,0.6))">🚛</div>`,
-            iconSize: [28,28], iconAnchor: [14,14], className: ''
-        });
-        if (truckMarker) truckMarker.setLatLng([tLat, tLon]);
-        else truckMarker = L.marker([tLat, tLon], { icon: truckIcon }).addTo(map).bindPopup('<b>🚛 Garbage Truck</b>');
-
-        if (routeLine) map.removeLayer(routeLine);
-        routeLine = L.polyline([[userLat, userLon],[tLat, tLon]], {
-            color: '#00BFFF', weight: 2, dashArray: '6 5', opacity: 0.5
-        }).addTo(map);
-
-        map.fitBounds(L.latLngBounds([[userLat,userLon],[tLat,tLon]]), { padding: [50,50] });
+        if (!map) return;
+        try {
+            const truckIcon = L.divIcon({
+                html: `<div style="font-size:24px;line-height:1;filter:drop-shadow(0 0 6px rgba(0,255,135,0.6))">🚛</div>`,
+                iconSize: [28,28], iconAnchor: [14,14], className: ''
+            });
+            if (truckMarker) truckMarker.setLatLng([tLat, tLon]);
+            else truckMarker = L.marker([tLat, tLon], { icon: truckIcon })
+                .addTo(map).bindPopup('<b>🚛 Garbage Truck</b>');
+            if (routeLine) map.removeLayer(routeLine);
+            routeLine = L.polyline([[userLat, userLon],[tLat, tLon]], {
+                color: '#00BFFF', weight: 2, dashArray: '6 5', opacity: 0.5
+            }).addTo(map);
+            map.fitBounds(L.latLngBounds([[userLat,userLon],[tLat,tLon]]), { padding: [50,50] });
+        } catch(e) {}
     }
 
-    // Activate dashboard
+    // ── DASHBOARD ACTIVATION ──
     function activateDashboard() {
         dashLocked.style.display = 'none';
-        dashBoard.style.display = 'block';
-        // Start polling immediately — never blocked by map
+        dashBoard.style.display = 'flex';
+        // Polling starts immediately — completely independent of map
         startPolling();
-        // Init map separately with longer delay for mobile rendering
-        setTimeout(() => {
-            try {
-                initMap();
-                if (map) map.invalidateSize();
-            } catch(e) {
-                console.warn('Map init failed, continuing without map:', e);
-            }
-        }, 600);
+        // Map inits after a delay to let mobile browser finish rendering
+        setTimeout(initMap, 800);
     }
 
-    // Firebase save
+    // ── FIREBASE ──
     async function saveToFirebase(lat, lon) {
         const base = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
-        const patchUrl = `${base}/user/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`;
         const body = { fields: { latitude: { doubleValue: lat }, longitude: { doubleValue: lon } } };
-
-        let res = await fetch(patchUrl, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        let res = await fetch(
+            `${base}/user/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`,
+            { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }
+        );
         if (!res.ok && res.status === 404) {
             res = await fetch(`${base}/user?documentId=location`, {
                 method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
@@ -662,6 +667,7 @@
         if (!res.ok) throw new Error(res.status);
     }
 
+    // ── LOCATION ──
     async function getAndSaveLocation() {
         if (!navigator.geolocation) {
             card.classList.add('error-state');
@@ -685,7 +691,6 @@
                 coordsDisp.classList.add('visible');
                 mainBtn.style.display = 'none';
                 updateBtn.style.display = 'block';
-
                 if (!locationSaved) {
                     locationSaved = true;
                     activateDashboard();
@@ -714,48 +719,57 @@
         getAndSaveLocation();
     });
 
-    // Poll truck location
+    // ── POLLING ──
     let lastNearbyNotif = 0;
+    let pollingStarted = false;
 
     async function fetchTruck() {
         try {
-            const res = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/truck/location`);
+            const res = await fetch(
+                `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/truck/location`,
+                { cache: 'no-store' }
+            );
             if (!res.ok) throw new Error(res.status);
             const data = await res.json();
             const tLat = data.fields?.latitude?.doubleValue;
             const tLon = data.fields?.longitude?.doubleValue;
             if (tLat == null || tLon == null) throw new Error('no coords');
 
+            // Update truck display
             truckLat.textContent = tLat.toFixed(5);
             truckLon.textContent = tLon.toFixed(5);
             truckStatus.textContent = 'Online';
             truckStatus.style.color = 'var(--green)';
             lastUpdate.textContent = 'Updated ' + new Date().toLocaleTimeString();
 
+            // Calculate and display distance
             const dist = haversine(userLat, userLon, tLat, tLon);
             const { val, unit } = fmtDist(dist);
             distValue.textContent = val;
             distUnit.textContent = unit;
 
+            // Alert
             if (dist <= ALERT_RADIUS_M) {
                 alertBanner.className = 'alert-banner nearby';
                 alertIcon.textContent = '🔔';
                 alertTitle.textContent = 'Truck is nearby!';
                 alertSub.textContent = `Only ${Math.round(dist)}m away — get ready with your garbage!`;
-                // Browser notification (once per minute)
                 const now = Date.now();
                 if (now - lastNearbyNotif > 60000 && Notification.permission === 'granted') {
-                    new Notification('🚛 GarbageTrack Alert', { body: `Garbage truck is ${Math.round(dist)}m away!` });
+                    new Notification('🚛 GarbageTrack Alert', { body: `Truck is ${Math.round(dist)}m away!` });
                     lastNearbyNotif = now;
                 }
             } else {
                 alertBanner.className = 'alert-banner far';
                 alertIcon.textContent = '✅';
                 alertTitle.textContent = 'Truck is far away';
-                alertSub.textContent = `${val}${unit.includes('km')?'km':'m'} — you have time to prepare`;
+                alertSub.textContent = `${val} ${unit} — you have time to prepare`;
             }
 
+            // Try to init map if not done yet, then update it
+            if (!mapReady) initMap();
             updateMap(tLat, tLon);
+
         } catch(e) {
             truckLat.textContent = '—';
             truckLon.textContent = '—';
@@ -766,11 +780,13 @@
             alertBanner.className = 'alert-banner waiting';
             alertIcon.textContent = '📡';
             alertTitle.textContent = 'Waiting for truck signal...';
-            alertSub.textContent = 'Open truck.html on the driver\'s phone';
+            alertSub.textContent = "Open truck.html on the driver's phone";
         }
     }
 
     function startPolling() {
+        if (pollingStarted) return;
+        pollingStarted = true;
         fetchTruck();
         setInterval(fetchTruck, 3000);
         if ('Notification' in window && Notification.permission === 'default') {
