@@ -46,8 +46,11 @@ Version 2 completely rethinks the resident experience. Everything now happens in
 | Resident interface | Python terminal | Web dashboard |
 | User location | Hardcoded in script | GPS from browser, saved to Firebase |
 | Distance display | Terminal print | Live updating card, every 3 seconds |
-| Alert | Terminal text | Animated banner + browser notification |
+| Alert | Terminal text | Animated banner + browser notification + sound |
 | Map | None | Live OpenStreetMap with both markers |
+| ETA prediction | None | ML linear regression on GPS trajectory |
+| Sound alert | None | 3-beep audio alert via Web Audio API |
+| Stop sharing | None | One tap to remove location from database |
 | Setup required | Python + pip install | Just open the URL |
 
 ---
@@ -74,6 +77,7 @@ Designed to run on the garbage truck driver's phone.
 - Shows a radar pulse animation while transmitting
 - Displays live latitude/longitude on screen
 - Simple Stop/Start toggle button
+- Mobile optimized, works on any phone browser
 
 ### 🏠 `user.html` — Resident Dashboard
 Everything the resident needs, in one page.
@@ -88,6 +92,9 @@ Everything the resident needs, in one page.
 - 📏 **Distance Card** — live distance in meters or km, updates every 3 seconds
 - 🚛 **Truck GPS Card** — live coordinates from the truck with a LIVE indicator
 - 🗺️ **Interactive Map** — dark-themed OpenStreetMap showing both locations, connected by a dashed line, auto-zooms to fit
+- 🤖 **ML ETA Prediction** — linear regression on last 6 GPS readings predicts truck arrival time in minutes
+- 🔊 **Sound Alert** — 3 loud beeps via Web Audio API the moment truck enters 500m radius
+- 🛑 **Stop Sharing** — removes location from database and resets dashboard with one tap
 
 ---
 
@@ -100,6 +107,8 @@ Everything the resident needs, in one page.
 | Maps | Leaflet.js + OpenStreetMap |
 | GPS | Browser Geolocation API |
 | Hosting | GitHub Pages |
+| ML algorithm | Linear Regression (JavaScript, client-side) |
+| Sound | Web Audio API |
 | Legacy backend | Python 3, google-cloud-firestore, geopy |
 
 ---
@@ -165,8 +174,9 @@ Make sure your Firebase service account JSON key file is in the same folder and 
 - 👥 Multi-resident support with unique user registration
 - 📱 SMS/push notifications when browser is closed
 - 🗺️ Truck route history and path visualization
-- ⏰ Estimated arrival time based on truck speed and direction
+- 📱 SMS notifications when browser is closed (Twilio)
 - 🔐 Driver authentication to prevent spoofing
+- 👥 Multi-resident support with individual user registration
 
 ---
 
