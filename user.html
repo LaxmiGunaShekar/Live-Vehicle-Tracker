@@ -610,7 +610,11 @@
     }
 
     function updateMap(tLat, tLon) {
-        if (!map) return;
+        if (!map) {
+            // Map not ready yet — try to init now
+            try { initMap(); if (map) map.invalidateSize(); } catch(e) {}
+            if (!map) return;
+        }
         const truckIcon = L.divIcon({
             html: `<div style="font-size:24px;line-height:1;filter:drop-shadow(0 0 6px rgba(0,255,135,0.6))">🚛</div>`,
             iconSize: [28,28], iconAnchor: [14,14], className: ''
@@ -629,8 +633,18 @@
     // Activate dashboard
     function activateDashboard() {
         dashLocked.style.display = 'none';
-        dashBoard.style.display = 'flex';
-        setTimeout(() => { initMap(); startPolling(); }, 200);
+        dashBoard.style.display = 'block';
+        // Start polling immediately — never blocked by map
+        startPolling();
+        // Init map separately with longer delay for mobile rendering
+        setTimeout(() => {
+            try {
+                initMap();
+                if (map) map.invalidateSize();
+            } catch(e) {
+                console.warn('Map init failed, continuing without map:', e);
+            }
+        }, 600);
     }
 
     // Firebase save
