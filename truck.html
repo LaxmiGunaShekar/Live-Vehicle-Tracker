@@ -1,466 +1,351 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GarbageTrack — Truck Transmitter</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GarbageTrack — Truck Transmitter</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-        :root {
-            --green: #00FF87;
-            --green-dim: #00cc6a;
-            --bg: #0a0f0a;
-            --surface: #111811;
-            --surface2: #182018;
-            --border: #1e2e1e;
-            --text: #e8f0e8;
-            --muted: #5a705a;
-            --red: #ff4545;
-        }
+:root{
+  --neon-yellow:#FFE600;
+  --neon-pink:#FF006E;
+  --neon-cyan:#00F5FF;
+  --red:#ff4545;
+  --bg:#0a0005;
+  --surface:#0f0010;
+  --surface2:#160018;
+  --border:#2a003a;
+  --border2:#3d0050;
+  --text:#f0e6ff;
+  --muted:#6b4d7a;
+  --muted2:#8a6d9a;
+}
 
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px 20px;
-            overflow-x: hidden;
-        }
+body{
+  font-family:'Rajdhani',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px 20px;
+  overflow-x:hidden;
+}
 
-        /* Background grid */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(0,255,135,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,255,135,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            pointer-events: none;
-            z-index: 0;
-        }
+/* Scanlines */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px);
+  pointer-events:none;z-index:999;
+}
 
-        .wrapper {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 380px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+/* Grid bg */
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:
+    repeating-linear-gradient(90deg,transparent 0,transparent 39px,rgba(255,230,0,0.03) 40px),
+    repeating-linear-gradient(0deg,transparent 0,transparent 39px,rgba(255,0,110,0.025) 40px);
+  pointer-events:none;z-index:0;
+}
 
-        /* Header */
-        .header {
-            text-align: center;
-        }
+.wrapper{
+  position:relative;z-index:1;
+  width:100%;max-width:380px;
+  display:flex;flex-direction:column;gap:18px;
+}
 
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
+/* HEADER */
+.header{text-align:center;}
 
-        .logo-icon {
-            width: 36px;
-            height: 36px;
-            background: var(--green);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
+.logo{display:inline-flex;align-items:center;gap:12px;margin-bottom:8px;}
 
-        .logo-text {
-            font-family: 'Space Mono', monospace;
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--green);
-            letter-spacing: -0.5px;
-        }
+.logo-icon{
+  width:44px;height:44px;
+  background:var(--neon-yellow);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  animation:hex-pulse 3s ease-in-out infinite;
+}
+@keyframes hex-pulse{
+  0%,100%{filter:drop-shadow(0 0 8px var(--neon-yellow));}
+  50%{filter:drop-shadow(0 0 22px var(--neon-yellow)) drop-shadow(0 0 40px rgba(255,230,0,0.3));}
+}
 
-        .tagline {
-            font-size: 13px;
-            color: var(--muted);
-            letter-spacing: 0.5px;
-        }
+.logo-text{
+  font-family:'Share Tech Mono',monospace;
+  font-size:22px;font-weight:700;
+  color:var(--neon-yellow);
+  text-shadow:0 0 10px var(--neon-yellow),0 0 30px rgba(255,230,0,0.3);
+  letter-spacing:2px;
+}
 
-        /* Main card */
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 28px 24px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 24px;
-        }
+.tagline{
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;color:var(--neon-pink);
+  letter-spacing:3px;text-transform:uppercase;
+  text-shadow:0 0 8px var(--neon-pink);
+}
 
-        /* Pulse animation area */
-        .pulse-container {
-            position: relative;
-            width: 140px;
-            height: 140px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+/* CARD */
+.card{
+  background:var(--surface);
+  border:1px solid var(--neon-pink);
+  border-top:2px solid var(--neon-yellow);
+  clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+  padding:28px 24px;
+  display:flex;flex-direction:column;align-items:center;gap:22px;
+  box-shadow:0 0 20px rgba(255,0,110,0.08),inset 0 0 40px rgba(255,0,110,0.02);
+}
 
-        .pulse-ring {
-            position: absolute;
-            border-radius: 50%;
-            border: 2px solid var(--green);
-            opacity: 0;
-            animation: none;
-        }
+/* RADAR */
+.pulse-container{
+  position:relative;
+  width:150px;height:150px;
+  display:flex;align-items:center;justify-content:center;
+}
 
-        .pulse-ring:nth-child(1) { width: 100%; height: 100%; }
-        .pulse-ring:nth-child(2) { width: 75%; height: 75%; }
-        .pulse-ring:nth-child(3) { width: 50%; height: 50%; }
+.pulse-ring{
+  position:absolute;
+  border-radius:50%;
+  border:1px solid var(--neon-yellow);
+  opacity:0;
+}
+.pulse-ring:nth-child(1){width:100%;height:100%;}
+.pulse-ring:nth-child(2){width:72%;height:72%;}
+.pulse-ring:nth-child(3){width:46%;height:46%;}
 
-        @keyframes pulseOut {
-            0%   { transform: scale(0.5); opacity: 0.6; }
-            100% { transform: scale(1.2); opacity: 0; }
-        }
+@keyframes cyberPulse{
+  0%{transform:scale(0.4);opacity:0.8;}
+  100%{transform:scale(1.1);opacity:0;}
+}
 
-        .transmitting .pulse-ring:nth-child(1) {
-            animation: pulseOut 2s ease-out infinite;
-        }
-        .transmitting .pulse-ring:nth-child(2) {
-            animation: pulseOut 2s ease-out 0.5s infinite;
-        }
-        .transmitting .pulse-ring:nth-child(3) {
-            animation: pulseOut 2s ease-out 1s infinite;
-        }
+.transmitting .pulse-ring:nth-child(1){animation:cyberPulse 2s ease-out infinite;}
+.transmitting .pulse-ring:nth-child(2){animation:cyberPulse 2s ease-out 0.6s infinite;}
+.transmitting .pulse-ring:nth-child(3){animation:cyberPulse 2s ease-out 1.2s infinite;}
 
-        .center-dot {
-            width: 52px;
-            height: 52px;
-            background: var(--surface2);
-            border: 2px solid var(--border);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            position: relative;
-            z-index: 2;
-            transition: border-color 0.3s, background 0.3s;
-        }
+/* Radar sweep */
+.radar-sweep{
+  position:absolute;
+  width:100%;height:100%;
+  border-radius:50%;
+  opacity:0;
+}
+.transmitting .radar-sweep{
+  opacity:1;
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(255,230,0,0.15) 30deg,transparent 60deg);
+  animation:sweep 3s linear infinite;
+}
+@keyframes sweep{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 
-        .transmitting .center-dot {
-            border-color: var(--green);
-            background: rgba(0, 255, 135, 0.08);
-            box-shadow: 0 0 20px rgba(0, 255, 135, 0.2);
-        }
+.center-dot{
+  width:58px;height:58px;
+  background:var(--surface2);
+  border:2px solid var(--border2);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;
+  position:relative;z-index:2;
+  transition:all 0.3s;
+}
 
-        .error-state .center-dot {
-            border-color: var(--red);
-            background: rgba(255, 69, 69, 0.08);
-        }
+.transmitting .center-dot{
+  border-color:var(--neon-yellow);
+  background:rgba(255,230,0,0.08);
+  box-shadow:0 0 20px rgba(255,230,0,0.25);
+  animation:center-glow 1.5s ease-in-out infinite;
+}
+@keyframes center-glow{
+  0%,100%{box-shadow:0 0 15px rgba(255,230,0,0.2);}
+  50%{box-shadow:0 0 35px rgba(255,230,0,0.5);}
+}
 
-        /* Description */
-        .description {
-            text-align: center;
-        }
+.error-state .center-dot{border-color:var(--red);background:rgba(255,69,69,0.08);}
 
-        .description h2 {
-            font-size: 17px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--text);
-        }
+/* DESCRIPTION */
+.description{text-align:center;}
+.description h2{
+  font-size:18px;font-weight:700;
+  color:var(--neon-yellow);letter-spacing:1px;margin-bottom:6px;
+  text-shadow:0 0 8px rgba(255,230,0,0.3);
+}
+.description p{font-size:13px;color:var(--muted);line-height:1.6;font-family:'Share Tech Mono',monospace;}
 
-        .description p {
-            font-size: 13px;
-            color: var(--muted);
-            line-height: 1.6;
-        }
+/* STATUS BADGE */
+.status-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;border:1px solid var(--border2);
+  padding:6px 16px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+  transition:all 0.3s;
+}
+.status-dot{width:7px;height:7px;background:var(--muted);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);transition:all 0.3s;}
+.transmitting .status-badge{border-color:var(--neon-yellow);color:var(--neon-yellow);text-shadow:0 0 6px var(--neon-yellow);}
+.transmitting .status-dot{background:var(--neon-yellow);animation:blink 1.2s infinite;}
+.error-state .status-badge{border-color:var(--red);color:var(--red);}
+.error-state .status-dot{background:var(--red);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
 
-        /* Status badge */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 6px 14px;
-            font-family: 'Space Mono', monospace;
-            font-size: 11px;
-            color: var(--muted);
-            transition: all 0.3s;
-        }
+/* COORDS */
+.coords-display{
+  width:100%;
+  background:var(--surface2);border:1px solid var(--border);
+  border-left:3px solid var(--neon-cyan);
+  padding:12px 16px;
+  display:flex;justify-content:space-between;gap:12px;
+  opacity:0;transform:translateY(6px);
+  transition:opacity 0.4s,transform 0.4s;
+}
+.coords-display.visible{opacity:1;transform:translateY(0);}
+.coord-item{flex:1;text-align:center;}
+.coord-label{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px;}
+.coord-value{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--neon-cyan);font-weight:700;text-shadow:0 0 6px var(--neon-cyan);}
 
-        .status-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--muted);
-            transition: background 0.3s;
-        }
+/* BUTTONS */
+.btn{
+  width:100%;padding:16px;border:none;
+  font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;
+  cursor:pointer;transition:all 0.2s;
+  letter-spacing:2px;text-transform:uppercase;
+}
+.btn-start{
+  background:var(--neon-yellow);color:#0a0005;
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+  box-shadow:0 0 20px rgba(255,230,0,0.25);
+}
+.btn-start:active{transform:scale(0.97);}
+.btn-stop{
+  background:transparent;color:var(--red);
+  border:1px solid rgba(255,69,69,0.4);
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+}
+.btn-stop:active{transform:scale(0.97);}
 
-        .transmitting .status-badge {
-            border-color: rgba(0, 255, 135, 0.3);
-            color: var(--green);
-        }
+/* INFO CARD */
+.info-card{
+  background:var(--surface);
+  border:1px solid var(--border2);
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+  padding:20px;
+}
 
-        .transmitting .status-dot {
-            background: var(--green);
-            box-shadow: 0 0 6px var(--green);
-            animation: blink 1.2s ease-in-out infinite;
-        }
+.info-title{
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;color:var(--neon-cyan);
+  letter-spacing:3px;text-transform:uppercase;
+  text-shadow:0 0 6px var(--neon-cyan);
+  margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.info-title::before{content:'//';color:var(--neon-pink);text-shadow:0 0 6px var(--neon-pink);}
 
-        .error-state .status-badge {
-            border-color: rgba(255, 69, 69, 0.3);
-            color: var(--red);
-        }
+.steps{display:flex;flex-direction:column;gap:12px;}
+.step{display:flex;align-items:flex-start;gap:12px;}
 
-        .error-state .status-dot {
-            background: var(--red);
-        }
+.step-num{
+  width:24px;height:24px;
+  background:var(--surface2);border:1px solid var(--border2);
+  font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--neon-yellow);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-top:1px;
+  clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);
+}
 
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
+.step-text{font-size:13px;color:var(--muted);line-height:1.5;font-family:'Share Tech Mono',monospace;}
+.step-text strong{color:var(--text);font-weight:600;}
 
-        /* Coords display */
-        .coords-display {
-            width: 100%;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px 16px;
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            opacity: 0;
-            transform: translateY(6px);
-            transition: opacity 0.4s, transform 0.4s;
-        }
-
-        .coords-display.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .coord-item {
-            flex: 1;
-            text-align: center;
-        }
-
-        .coord-label {
-            font-family: 'Space Mono', monospace;
-            font-size: 9px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-        }
-
-        .coord-value {
-            font-family: 'Space Mono', monospace;
-            font-size: 12px;
-            color: var(--green);
-            font-weight: 700;
-        }
-
-        /* Button */
-        .btn {
-            width: 100%;
-            padding: 16px;
-            border-radius: 14px;
-            border: none;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            letter-spacing: 0.3px;
-        }
-
-        .btn-start {
-            background: var(--green);
-            color: #0a0f0a;
-        }
-
-        .btn-start:active {
-            transform: scale(0.97);
-        }
-
-        .btn-stop {
-            background: transparent;
-            color: var(--red);
-            border: 1px solid rgba(255, 69, 69, 0.4);
-        }
-
-        .btn-stop:active {
-            transform: scale(0.97);
-            background: rgba(255, 69, 69, 0.05);
-        }
-
-        /* How it works */
-        .info-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 20px;
-        }
-
-        .info-title {
-            font-family: 'Space Mono', monospace;
-            font-size: 10px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 14px;
-        }
-
-        .steps {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .step {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
-
-        .step-num {
-            width: 22px;
-            height: 22px;
-            border-radius: 6px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            font-family: 'Space Mono', monospace;
-            font-size: 10px;
-            color: var(--green);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            margin-top: 1px;
-        }
-
-        .step-text {
-            font-size: 13px;
-            color: var(--muted);
-            line-height: 1.5;
-        }
-
-        .step-text strong {
-            color: var(--text);
-            font-weight: 500;
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            font-size: 11px;
-            color: var(--muted);
-            opacity: 0.5;
-        }
-    </style>
+.footer{
+  text-align:center;
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;color:var(--muted);opacity:0.4;
+  letter-spacing:2px;
+}
+</style>
 </head>
 <body>
 
 <div class="wrapper">
 
-    <div class="header">
-        <div class="logo">
-            <div class="logo-icon">🚛</div>
-            <span class="logo-text">GarbageTrack</span>
-        </div>
-        <p class="tagline">Live Vehicle Transmitter</p>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🚛</div>
+      <span class="logo-text">GARBAGETRACK</span>
+    </div>
+    <p class="tagline">// vehicle transmitter v2.0 //</p>
+  </div>
+
+  <!-- MAIN CARD -->
+  <div class="card" id="mainCard">
+
+    <div class="pulse-container" id="pulseArea">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="radar-sweep"></div>
+      <div class="center-dot" id="centerDot">📡</div>
     </div>
 
-    <div class="card" id="mainCard">
-
-        <div class="pulse-container" id="pulseArea">
-            <div class="pulse-ring"></div>
-            <div class="pulse-ring"></div>
-            <div class="pulse-ring"></div>
-            <div class="center-dot">📡</div>
-        </div>
-
-        <div class="description">
-            <h2>This phone is the truck</h2>
-            <p>Your phone's GPS location will be transmitted live to the tracking system, so residents can see when the garbage truck is approaching their area.</p>
-        </div>
-
-        <div class="status-badge" id="statusBadge">
-            <div class="status-dot"></div>
-            <span id="statusText">Waiting to start</span>
-        </div>
-
-        <div class="coords-display" id="coordsDisplay">
-            <div class="coord-item">
-                <div class="coord-label">Latitude</div>
-                <div class="coord-value" id="latValue">—</div>
-            </div>
-            <div class="coord-divider"></div>
-            <div class="coord-item">
-                <div class="coord-label">Longitude</div>
-                <div class="coord-value" id="lonValue">—</div>
-            </div>
-        </div>
-
-        <button class="btn btn-start" id="mainBtn">Start Transmitting</button>
-
+    <div class="description">
+      <h2>THIS UNIT IS THE TRUCK</h2>
+      <p>GPS coordinates are transmitted live to the city grid. Residents receive proximity alerts when this vehicle enters their sector.</p>
     </div>
 
-    <div class="info-card">
-        <div class="info-title">How it works</div>
-        <div class="steps">
-            <div class="step">
-                <div class="step-num">1</div>
-                <div class="step-text"><strong>This page reads your GPS</strong> using your phone's built-in location sensor.</div>
-            </div>
-            <div class="step">
-                <div class="step-num">2</div>
-                <div class="step-text"><strong>Coordinates are sent</strong> to a live Firebase database every few seconds.</div>
-            </div>
-            <div class="step">
-                <div class="step-num">3</div>
-                <div class="step-text"><strong>Residents get alerted</strong> when the truck enters their configured radius.</div>
-            </div>
-        </div>
+    <div class="status-badge" id="statusBadge">
+      <div class="status-dot"></div>
+      <span id="statusText">STANDBY MODE</span>
     </div>
 
-    <div class="footer">GarbageTrack Prototype · Built with Firebase + GPS API</div>
+    <div class="coords-display" id="coordsDisplay">
+      <div class="coord-item">
+        <div class="coord-label">LATITUDE</div>
+        <div class="coord-value" id="latValue">—</div>
+      </div>
+      <div class="coord-item">
+        <div class="coord-label">LONGITUDE</div>
+        <div class="coord-value" id="lonValue">—</div>
+      </div>
+    </div>
+
+    <button class="btn btn-start" id="mainBtn">▶ BEGIN TRANSMISSION</button>
+
+  </div>
+
+  <!-- INFO CARD -->
+  <div class="info-card">
+    <div class="info-title">system_protocol</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>GPS LOCK</strong> — Phone acquires satellite coordinates via built-in sensor.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>TRANSMIT</strong> — Coordinates upload to Firebase city grid every few seconds.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>ALERT</strong> — Residents receive proximity warning when truck enters 500m radius.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">GARBAGETRACK_SYS // FIREBASE + GPS API // BUILD_2.0</div>
 
 </div>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyDNFDaa8B4xVcxnUY1p9RZjWx6SS5tW6hY",
-        authDomain: "truck-tracker-demo.firebaseapp.com",
-        projectId: "truck-tracker-demo",
-        storageBucket: "truck-tracker-demo.firebasestorage.app",
-        messagingSenderId: "499636098898",
-        appId: "1:499636098898:web:066b15b0580fb8c2238c8b"
-    };
+    const PROJECT_ID = "truck-tracker-demo";
 
-    const card = document.getElementById('mainCard');
-    const pulseArea = document.getElementById('pulseArea');
-    const statusText = document.getElementById('statusText');
-    const statusBadge = document.getElementById('statusBadge');
-    const coordsDisplay = document.getElementById('coordsDisplay');
-    const latValue = document.getElementById('latValue');
-    const lonValue = document.getElementById('lonValue');
-    const mainBtn = document.getElementById('mainBtn');
+    const card        = document.getElementById('mainCard');
+    const pulseArea   = document.getElementById('pulseArea');
+    const statusText  = document.getElementById('statusText');
+    const coordsDisp  = document.getElementById('coordsDisplay');
+    const latValue    = document.getElementById('latValue');
+    const lonValue    = document.getElementById('lonValue');
+    const mainBtn     = document.getElementById('mainBtn');
 
     let watchId = null;
     let isTransmitting = false;
@@ -470,15 +355,16 @@
         if (on) {
             pulseArea.classList.add('transmitting');
             card.classList.remove('error-state');
-            statusText.textContent = 'Transmitting Live';
-            mainBtn.textContent = 'Stop Transmitting';
+            statusText.textContent = 'TRANSMITTING LIVE';
+            mainBtn.textContent = '■ HALT TRANSMISSION';
             mainBtn.className = 'btn btn-stop';
         } else {
             pulseArea.classList.remove('transmitting');
-            statusText.textContent = 'Stopped';
-            mainBtn.textContent = 'Start Transmitting';
+            card.classList.remove('error-state');
+            statusText.textContent = 'TRANSMISSION HALTED';
+            mainBtn.textContent = '▶ BEGIN TRANSMISSION';
             mainBtn.className = 'btn btn-start';
-            coordsDisplay.classList.remove('visible');
+            coordsDisp.classList.remove('visible');
         }
     }
 
@@ -486,88 +372,54 @@
         pulseArea.classList.remove('transmitting');
         card.classList.add('error-state');
         statusText.textContent = msg;
-        mainBtn.textContent = 'Try Again';
+        mainBtn.textContent = '↺ RETRY';
         mainBtn.className = 'btn btn-start';
         isTransmitting = false;
     }
 
-    async function updateLocation(lat, lon) {
-        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/truck/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`;
-        const data = {
-            fields: {
-                latitude: { doubleValue: lat },
-                longitude: { doubleValue: lon }
-            }
-        };
+    async function uploadLocation(lat, lon) {
+        const base = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+        const body = { fields: { latitude: { doubleValue: lat }, longitude: { doubleValue: lon } } };
         try {
-            const res = await fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (!res.ok) {
-                if (res.status === 404) {
-                    await createLocation(lat, lon);
-                } else {
-                    throw new Error(`${res.status}`);
-                }
+            let res = await fetch(
+                `${base}/truck/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`,
+                { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }
+            );
+            if (!res.ok && res.status === 404) {
+                res = await fetch(`${base}/truck?documentId=location`,
+                    { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
             }
+            if (!res.ok) throw new Error(res.status);
             latValue.textContent = lat.toFixed(5);
             lonValue.textContent = lon.toFixed(5);
-            coordsDisplay.classList.add('visible');
+            coordsDisp.classList.add('visible');
             card.classList.remove('error-state');
-        } catch (e) {
-            setError('Upload failed — check connection');
+        } catch(e) {
+            setError('UPLINK_FAILED — CHECK CONNECTION');
         }
-    }
-
-    async function createLocation(lat, lon) {
-        const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/truck?documentId=location`;
-        const data = {
-            fields: {
-                latitude: { doubleValue: lat },
-                longitude: { doubleValue: lon }
-            }
-        };
-        await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
     }
 
     function startTransmitting() {
-        if (!navigator.geolocation) {
-            setError('GPS not available on this device');
-            return;
-        }
-        statusText.textContent = 'Getting GPS fix...';
+        if (!navigator.geolocation) { setError('GPS_UNAVAILABLE'); return; }
+        statusText.textContent = 'ACQUIRING GPS LOCK...';
         watchId = navigator.geolocation.watchPosition(
             (pos) => {
                 setTransmitting(true);
-                updateLocation(pos.coords.latitude, pos.coords.longitude);
+                uploadLocation(pos.coords.latitude, pos.coords.longitude);
             },
-            (err) => {
-                setError('Location permission denied');
-            },
+            () => setError('ACCESS_DENIED — ENABLE LOCATION'),
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     }
 
     function stopTransmitting() {
-        if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
-        }
+        if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
         setTransmitting(false);
     }
 
     mainBtn.addEventListener('click', () => {
-        if (isTransmitting) {
-            stopTransmitting();
-        } else {
-            startTransmitting();
-        }
+        if (isTransmitting) stopTransmitting();
+        else startTransmitting();
     });
 </script>
 </body>
