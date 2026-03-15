@@ -1,613 +1,418 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GarbageTrack — Resident</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GarbageTrack — Resident</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-        :root {
-            --blue: #00BFFF;
-            --green: #00FF87;
-            --amber: #FFB800;
-            --red: #ff4545;
-            --bg: #080c12;
-            --surface: #0f1420;
-            --surface2: #161c2e;
-            --border: #1e2846;
-            --text: #e8eef8;
-            --muted: #4a5878;
-            --muted2: #6b7a9a;
-        }
+:root{
+  --neon-yellow:#FFE600;
+  --neon-pink:#FF006E;
+  --neon-cyan:#00F5FF;
+  --amber:#FFB800;
+  --red:#ff4545;
+  --green:#00FF87;
+  --bg:#0a0005;
+  --surface:#0f0010;
+  --surface2:#160018;
+  --border:#2a003a;
+  --border2:#3d0050;
+  --text:#f0e6ff;
+  --muted:#6b4d7a;
+  --muted2:#8a6d9a;
+}
 
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 28px 20px 48px;
-        }
+body{
+  font-family:'Rajdhani',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  padding:24px 20px 48px;
+  overflow-x:hidden;
+}
 
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(0,191,255,0.025) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,255,135,0.02) 1px, transparent 1px);
-            background-size: 48px 48px;
-            pointer-events: none;
-            z-index: 0;
-        }
+/* Scanlines */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px);
+  pointer-events:none;z-index:999;
+}
 
-        .wrapper {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 420px;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
+/* Grid bg */
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:
+    repeating-linear-gradient(90deg,transparent 0,transparent 39px,rgba(255,230,0,0.03) 40px),
+    repeating-linear-gradient(0deg,transparent 0,transparent 39px,rgba(255,0,110,0.025) 40px);
+  pointer-events:none;z-index:0;
+}
 
-        /* HEADER */
-        .header { text-align: center; padding: 8px 0 4px; }
+.wrapper{
+  position:relative;z-index:1;
+  width:100%;max-width:420px;
+  display:flex;flex-direction:column;gap:16px;
+}
 
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 6px;
-        }
+/* HEADER */
+.header{text-align:center;padding:12px 0 4px;}
 
-        .logo-icon {
-            width: 38px; height: 38px;
-            background: linear-gradient(135deg, var(--blue), #0090cc);
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px;
-            box-shadow: 0 4px 16px rgba(0,191,255,0.25);
-        }
+.logo{display:inline-flex;align-items:center;gap:12px;margin-bottom:8px;}
 
-        .logo-text {
-            font-family: 'Space Mono', monospace;
-            font-size: 20px; font-weight: 700;
-            background: linear-gradient(90deg, var(--blue), var(--green));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+.logo-icon{
+  width:44px;height:44px;
+  background:var(--neon-yellow);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  animation:hex-pulse 3s ease-in-out infinite;
+}
+@keyframes hex-pulse{
+  0%,100%{filter:drop-shadow(0 0 8px var(--neon-yellow));}
+  50%{filter:drop-shadow(0 0 22px var(--neon-yellow)) drop-shadow(0 0 40px rgba(255,230,0,0.3));}
+}
 
-        .tagline { font-size: 12px; color: var(--muted); letter-spacing: 0.5px; }
+.logo-text{
+  font-family:'Share Tech Mono',monospace;
+  font-size:24px;font-weight:700;
+  color:var(--neon-yellow);
+  text-shadow:0 0 10px var(--neon-yellow),0 0 30px rgba(255,230,0,0.3);
+  letter-spacing:2px;
+}
 
-        /* SECTION LABELS */
-        .section-label {
-            font-family: 'Space Mono', monospace;
-            font-size: 10px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            padding-left: 2px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .section-label::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
+.tagline{
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;color:var(--neon-pink);
+  letter-spacing:3px;text-transform:uppercase;
+  text-shadow:0 0 8px var(--neon-pink);
+}
 
-        /* LOCATION CARD */
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 18px;
-        }
+/* SECTION LABEL */
+.section-label{
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;color:var(--neon-cyan);
+  letter-spacing:3px;text-transform:uppercase;
+  text-shadow:0 0 6px var(--neon-cyan);
+  display:flex;align-items:center;gap:10px;
+}
+.section-label::before{content:'//';color:var(--neon-pink);margin-right:2px;text-shadow:0 0 6px var(--neon-pink);}
+.section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--neon-cyan),transparent);}
 
-        .icon-area {
-            width: 70px; height: 70px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 30px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
+/* CARD */
+.card{
+  background:var(--surface);
+  border:1px solid var(--neon-pink);
+  border-top:2px solid var(--neon-yellow);
+  clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+  padding:24px;
+  display:flex;flex-direction:column;align-items:center;gap:18px;
+  box-shadow:0 0 20px rgba(255,0,110,0.08),inset 0 0 40px rgba(255,0,110,0.02);
+}
 
-        .saved .icon-area {
-            border-color: var(--green);
-            box-shadow: 0 0 20px rgba(0,255,135,0.15);
-        }
-        .error-state .icon-area { border-color: var(--red); }
+.icon-area{
+  width:80px;height:80px;
+  border:2px solid var(--neon-pink);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;
+  background:var(--surface2);
+  transition:all 0.3s;
+  animation:icon-idle 4s ease-in-out infinite;
+}
+@keyframes icon-idle{
+  0%,100%{box-shadow:0 0 10px rgba(255,0,110,0.3);}
+  50%{box-shadow:0 0 25px rgba(255,0,110,0.5);}
+}
+.saved .icon-area{
+  border-color:var(--neon-yellow);
+  animation:icon-saved 2s ease-in-out infinite;
+}
+@keyframes icon-saved{
+  0%,100%{box-shadow:0 0 10px rgba(255,230,0,0.4);}
+  50%{box-shadow:0 0 30px rgba(255,230,0,0.7);}
+}
+.error-state .icon-area{border-color:var(--red);}
 
-        .description { text-align: center; }
-        .description h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-        .description p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.description{text-align:center;}
+.description h2{font-size:18px;font-weight:700;color:var(--neon-yellow);letter-spacing:1px;margin-bottom:6px;text-shadow:0 0 8px rgba(255,230,0,0.3);}
+.description p{font-size:13px;color:var(--muted);line-height:1.6;font-family:'Share Tech Mono',monospace;}
 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 6px 14px;
-            font-family: 'Space Mono', monospace;
-            font-size: 11px;
-            color: var(--muted);
-            transition: all 0.3s;
-        }
+.status-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;
+  border:1px solid var(--border2);
+  padding:6px 16px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  color:var(--muted);
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+  transition:all 0.3s;
+}
+.saved .status-badge{border-color:var(--neon-yellow);color:var(--neon-yellow);text-shadow:0 0 6px var(--neon-yellow);}
+.error-state .status-badge{border-color:var(--red);color:var(--red);}
+.status-dot{width:7px;height:7px;background:var(--muted);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);transition:all 0.3s;}
+.saved .status-dot{background:var(--neon-yellow);animation:blink 1.5s infinite;}
+.error-state .status-dot{background:var(--red);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 
-        .status-dot {
-            width: 7px; height: 7px; border-radius: 50%;
-            background: var(--muted);
-            transition: background 0.3s;
-        }
+.coords-display{
+  width:100%;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-left:3px solid var(--neon-cyan);
+  padding:12px 16px;
+  display:flex;justify-content:space-between;gap:12px;
+  opacity:0;transform:translateY(6px);
+  transition:opacity 0.4s,transform 0.4s;
+}
+.coords-display.visible{opacity:1;transform:translateY(0);}
+.coord-item{flex:1;text-align:center;}
+.coord-label{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px;}
+.coord-value{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--neon-cyan);font-weight:700;text-shadow:0 0 6px var(--neon-cyan);}
 
-        .saved .status-badge { border-color: rgba(0,255,135,0.3); color: var(--green); }
-        .saved .status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: blink 2s infinite; }
-        .error-state .status-badge { border-color: rgba(255,69,69,0.3); color: var(--red); }
-        .error-state .status-dot { background: var(--red); }
+.btn{
+  width:100%;padding:14px;border:none;
+  font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;
+  cursor:pointer;transition:all 0.2s;
+  letter-spacing:2px;text-transform:uppercase;
+}
+.btn-primary{
+  background:var(--neon-yellow);color:#0a0005;
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+  box-shadow:0 0 20px rgba(255,230,0,0.25);
+}
+.btn-primary:active{transform:scale(0.97);}
+.btn-secondary{
+  background:transparent;color:var(--muted);
+  border:1px solid var(--border2);margin-top:-6px;
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+}
+.btn-secondary:active{transform:scale(0.97);}
+.btn-stop{
+  background:transparent;color:var(--neon-pink);
+  border:1px solid rgba(255,0,110,0.3);margin-top:-6px;
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+}
+.btn-stop:active{transform:scale(0.97);}
 
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+/* LOCKED */
+.dashboard-locked{
+  background:var(--surface);
+  border:1px dashed var(--border2);
+  padding:28px 24px;text-align:center;
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+}
+.lock-icon{font-size:28px;margin-bottom:12px;}
+.dashboard-locked p{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted);line-height:1.8;}
 
-        .coords-display {
-            width: 100%;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 13px 16px;
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            opacity: 0;
-            transform: translateY(6px);
-            transition: opacity 0.4s, transform 0.4s;
-        }
-        .coords-display.visible { opacity: 1; transform: translateY(0); }
+/* DASHBOARD */
+.dashboard{display:flex;flex-direction:column;gap:12px;}
 
-        .coord-item { flex: 1; text-align: center; }
-        .coord-label {
-            font-family: 'Space Mono', monospace;
-            font-size: 9px; color: var(--muted);
-            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
-        }
-        .coord-value {
-            font-family: 'Space Mono', monospace;
-            font-size: 12px; font-weight: 700; color: var(--blue);
-        }
+/* ALERT */
+.alert-banner{
+  border:1px solid var(--border2);background:var(--surface);
+  padding:16px 20px;
+  display:flex;align-items:center;gap:14px;
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));
+  transition:all 0.4s;
+}
+.alert-banner.nearby{
+  border-color:var(--neon-yellow);
+  background:rgba(255,230,0,0.05);
+  animation:alert-cyber 1.5s ease-in-out infinite;
+}
+.alert-banner.far{border-color:rgba(0,245,255,0.3);background:rgba(0,245,255,0.03);}
+.alert-banner.waiting{opacity:0.5;}
+@keyframes alert-cyber{
+  0%,100%{box-shadow:0 0 10px rgba(255,230,0,0.15);}
+  50%{box-shadow:0 0 30px rgba(255,230,0,0.35),inset 0 0 20px rgba(255,230,0,0.04);}
+}
+.alert-icon{font-size:26px;flex-shrink:0;}
+.alert-content{flex:1;}
+.alert-title{font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:2px;}
+.alert-sub{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);}
+.alert-banner.nearby .alert-title{color:var(--neon-yellow);text-shadow:0 0 8px var(--neon-yellow);}
+.alert-banner.far .alert-title{color:var(--neon-cyan);text-shadow:0 0 6px var(--neon-cyan);}
+.alert-banner.waiting .alert-title{color:var(--muted2);}
 
-        .btn {
-            width: 100%; padding: 14px; border-radius: 14px; border: none;
-            font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .btn-blue { background: var(--blue); color: #080c12; }
-        .btn-blue:active { transform: scale(0.97); }
-        .btn-secondary {
-            background: transparent; color: var(--muted);
-            border: 1px solid var(--border); margin-top: -6px;
-        }
-        .btn-secondary:active { transform: scale(0.97); }
+/* STATS */
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border2);
+  border-top:2px solid var(--neon-pink);
+  padding:16px;
+}
+.stat-label{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.stat-diamond{width:6px;height:6px;background:var(--neon-pink);transform:rotate(45deg);flex-shrink:0;}
+.stat-value{font-family:'Share Tech Mono',monospace;font-size:24px;font-weight:700;color:var(--neon-cyan);text-shadow:0 0 8px rgba(0,245,255,0.4);line-height:1;}
+.stat-unit{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);margin-top:3px;}
 
-        /* DASHBOARD */
-        .dashboard { display: flex; flex-direction: column; gap: 13px; }
+/* ETA */
+.eta-card{
+  background:var(--surface);border:1px solid var(--border2);
+  border-left:3px solid var(--neon-yellow);
+  padding:16px 18px;
+  display:none;align-items:center;gap:14px;
+}
+.eta-icon{font-size:24px;flex-shrink:0;}
+.eta-content{flex:1;}
+.eta-label{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+.eta-value{font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700;color:var(--neon-yellow);text-shadow:0 0 8px rgba(255,230,0,0.4);}
+.eta-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;}
+.ml-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(255,230,0,0.07);
+  border:1px solid rgba(255,230,0,0.3);
+  padding:3px 8px;
+  font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--neon-yellow);
+  flex-shrink:0;letter-spacing:1px;
+  clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);
+}
 
-        /* Locked state */
-        .dashboard-locked {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 28px 24px;
-            text-align: center;
-            color: var(--muted);
-        }
-        .dashboard-locked .lock-icon { font-size: 30px; margin-bottom: 12px; }
-        .dashboard-locked p { font-size: 13px; line-height: 1.7; }
+/* TRUCK GPS */
+.truck-card{background:var(--surface);border:1px solid var(--border2);border-bottom:2px solid var(--neon-cyan);padding:16px 18px;}
+.truck-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.truck-card-title{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.live-pill{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(0,245,255,0.06);
+  border:1px solid rgba(0,245,255,0.3);
+  padding:3px 9px;
+  font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--neon-cyan);
+  letter-spacing:1px;
+  clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);
+}
+.live-dot{width:5px;height:5px;background:var(--neon-cyan);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);animation:blink 1.5s infinite;}
+.truck-coords-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.tc-item{background:var(--surface2);border:1px solid var(--border);padding:10px 12px;}
+.tc-label{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:3px;}
+.tc-val{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--neon-cyan);font-weight:700;text-shadow:0 0 6px rgba(0,245,255,0.4);}
 
-        /* Alert banner */
-        .alert-banner {
-            border-radius: 16px;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            transition: all 0.4s;
-        }
+/* MAP */
+.map-card{background:var(--surface);border:1px solid var(--neon-pink);overflow:hidden;}
+.map-header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border2);}
+.map-title{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;}
+.map-legend{display:flex;align-items:center;gap:12px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-dot{width:8px;height:8px;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);}
+#map{height:240px;}
+.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(0.65) saturate(0.7) hue-rotate(200deg);}
+.leaflet-container{background:#0a0005 !important;}
 
-        .alert-banner.nearby {
-            background: rgba(255,184,0,0.07);
-            border-color: rgba(255,184,0,0.4);
-            animation: alert-glow 2s ease-in-out infinite;
-        }
-
-        .alert-banner.far {
-            background: rgba(0,255,135,0.05);
-            border-color: rgba(0,255,135,0.2);
-        }
-
-        .alert-banner.waiting { opacity: 0.55; }
-
-        @keyframes alert-glow {
-            0%,100%{ box-shadow: 0 0 0 0 rgba(255,184,0,0.15); }
-            50%{ box-shadow: 0 0 24px 4px rgba(255,184,0,0.08); }
-        }
-
-        .alert-icon { font-size: 26px; flex-shrink: 0; }
-        .alert-content { flex: 1; }
-        .alert-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-        .alert-sub { font-size: 12px; color: var(--muted); }
-        .alert-banner.nearby .alert-title { color: var(--amber); }
-        .alert-banner.far .alert-title { color: var(--green); }
-        .alert-banner.waiting .alert-title { color: var(--muted2); }
-
-        /* Stats row */
-        .stats-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .stat-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 16px;
-        }
-
-        .stat-label {
-            font-family: 'Space Mono', monospace;
-            font-size: 9px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 10px;
-        }
-
-        .stat-dot { width: 6px; height: 6px; border-radius: 50%; }
-
-        .stat-value {
-            font-family: 'Space Mono', monospace;
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--blue);
-            line-height: 1;
-        }
-
-        .stat-unit {
-            font-size: 11px;
-            color: var(--muted);
-            font-family: 'DM Sans', sans-serif;
-            margin-top: 3px;
-        }
-
-        /* Truck GPS coords */
-        .truck-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 16px 18px;
-        }
-
-        .truck-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .truck-card-title {
-            font-family: 'Space Mono', monospace;
-            font-size: 10px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        .live-pill {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            background: rgba(0,255,135,0.07);
-            border: 1px solid rgba(0,255,135,0.2);
-            border-radius: 999px;
-            padding: 3px 9px;
-            font-family: 'Space Mono', monospace;
-            font-size: 9px;
-            color: var(--green);
-        }
-
-        .live-dot {
-            width: 5px; height: 5px;
-            border-radius: 50%;
-            background: var(--green);
-            animation: blink 1.5s infinite;
-        }
-
-        .truck-coords-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .tc-item {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 12px;
-        }
-
-        .tc-label {
-            font-family: 'Space Mono', monospace;
-            font-size: 8px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 3px;
-        }
-
-        .tc-val {
-            font-family: 'Space Mono', monospace;
-            font-size: 13px;
-            color: var(--green);
-            font-weight: 700;
-        }
-
-        /* Map */
-        .map-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            overflow: hidden;
-        }
-
-        .map-header {
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .map-title {
-            font-family: 'Space Mono', monospace;
-            font-size: 10px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        .map-legend {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 11px;
-            color: var(--muted);
-        }
-
-        .legend-item { display: flex; align-items: center; gap: 5px; }
-
-        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
-
-        #map { height: 240px; }
-
-        /* Make leaflet tiles dark */
-        .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) saturate(1.1); }
-        .leaflet-container { background: #0a0d14 !important; }
-
-        .footer {
-            text-align: center;
-            font-size: 11px;
-            color: var(--muted);
-            opacity: 0.35;
-            padding-top: 4px;
-        }
-
-        .btn-stop {
-            background: transparent;
-            color: var(--red);
-            border: 1px solid rgba(255,69,69,0.3);
-            margin-top: -6px;
-        }
-        .btn-stop:active { transform: scale(0.97); }
-
-        /* ETA card */
-        .eta-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        .eta-icon { font-size: 26px; flex-shrink: 0; }
-        .eta-content { flex: 1; }
-        .eta-label {
-            font-family: 'Space Mono', monospace;
-            font-size: 9px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 4px;
-        }
-        .eta-value {
-            font-family: 'Space Mono', monospace;
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--amber);
-        }
-        .eta-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-        .ml-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            background: rgba(255,184,0,0.08);
-            border: 1px solid rgba(255,184,0,0.25);
-            border-radius: 999px;
-            padding: 3px 8px;
-            font-family: 'Space Mono', monospace;
-            font-size: 9px;
-            color: var(--amber);
-            flex-shrink: 0;
-        }
-    </style>
+.footer{text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);opacity:0.4;padding-top:4px;letter-spacing:2px;}
+</style>
 </head>
 <body>
 
 <div class="wrapper">
 
-    <!-- HEADER -->
-    <div class="header">
-        <div class="logo">
-            <div class="logo-icon">🗑️</div>
-            <span class="logo-text">GarbageTrack</span>
-        </div>
-        <p class="tagline">Resident Dashboard</p>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🗑️</div>
+      <span class="logo-text">GARBAGETRACK</span>
+    </div>
+    <p class="tagline">// resident terminal v2.0 //</p>
+  </div>
+
+  <!-- LOCATION -->
+  <div class="section-label">location_sync</div>
+
+  <div class="card" id="mainCard">
+    <div class="icon-area" id="iconArea">🏠</div>
+    <div class="description">
+      <h2>INITIALIZE HOME VECTOR</h2>
+      <p>Transmit your GPS coordinates to the city grid. System will calculate truck intercept and broadcast proximity alerts.</p>
+    </div>
+    <div class="status-badge" id="statusBadge">
+      <div class="status-dot"></div>
+      <span id="statusText">AWAITING SYNC</span>
+    </div>
+    <div class="coords-display" id="coordsDisplay">
+      <div class="coord-item">
+        <div class="coord-label">LAT</div>
+        <div class="coord-value" id="latValue">—</div>
+      </div>
+      <div class="coord-item">
+        <div class="coord-label">LON</div>
+        <div class="coord-value" id="lonValue">—</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="mainBtn">▶ SYNC LOCATION</button>
+    <button class="btn btn-secondary" id="updateBtn" style="display:none;">↺ RESYNC LOCATION</button>
+    <button class="btn btn-stop" id="stopBtn" style="display:none;">■ DISCONNECT</button>
+  </div>
+
+  <!-- TRACKER -->
+  <div class="section-label" style="margin-top:4px;">live_tracker</div>
+
+  <div class="dashboard-locked" id="dashLocked">
+    <div class="lock-icon">🔒</div>
+    <p>// ACCESS DENIED //<br>Initialize location sync above to unlock the live tracking grid and intercept truck signals.</p>
+  </div>
+
+  <div class="dashboard" id="dashBoard" style="display:none;">
+
+    <div class="alert-banner waiting" id="alertBanner">
+      <div class="alert-icon" id="alertIcon">📡</div>
+      <div class="alert-content">
+        <div class="alert-title" id="alertTitle">SCANNING FOR SIGNAL...</div>
+        <div class="alert-sub" id="alertSub">Grid refresh interval: 3000ms</div>
+      </div>
     </div>
 
-    <!-- MY LOCATION SECTION -->
-    <div class="section-label">My Location</div>
-
-    <div class="card" id="mainCard">
-        <div class="icon-area" id="iconArea">🏠</div>
-
-        <div class="description">
-            <h2>Set your home location</h2>
-            <p>Share your GPS once so the system knows where you are. The live tracker below will activate automatically.</p>
-        </div>
-
-        <div class="status-badge" id="statusBadge">
-            <div class="status-dot"></div>
-            <span id="statusText">Location not set</span>
-        </div>
-
-        <div class="coords-display" id="coordsDisplay">
-            <div class="coord-item">
-                <div class="coord-label">Latitude</div>
-                <div class="coord-value" id="latValue">—</div>
-            </div>
-            <div class="coord-item">
-                <div class="coord-label">Longitude</div>
-                <div class="coord-value" id="lonValue">—</div>
-            </div>
-        </div>
-
-        <button class="btn btn-blue" id="mainBtn">Share My Location</button>
-        <button class="btn btn-secondary" id="updateBtn" style="display:none;">Update Location</button>
-        <button class="btn btn-stop" id="stopBtn" style="display:none;">🛑 Stop Sharing Location</button>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label"><span class="stat-diamond"></span>DISTANCE</div>
+        <div class="stat-value" id="distValue">—</div>
+        <div class="stat-unit" id="distUnit">initializing...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><span class="stat-diamond"></span>TRUCK_STATUS</div>
+        <div class="stat-value" style="font-size:14px;color:var(--muted2);" id="truckStatus">OFFLINE</div>
+        <div class="stat-unit" id="lastUpdate"></div>
+      </div>
     </div>
 
-    <!-- LIVE TRACKER SECTION -->
-    <div class="section-label" style="margin-top:4px;">Live Tracker</div>
-
-    <!-- Locked placeholder -->
-    <div class="dashboard-locked" id="dashLocked">
-        <div class="lock-icon">🔒</div>
-        <p>Set your home location above to activate the live tracker. You'll see the truck's position, distance, and get alerts right here.</p>
+    <div class="eta-card" id="etaCard">
+      <div class="eta-icon">⏱️</div>
+      <div class="eta-content">
+        <div class="eta-label">ML_ETA_PREDICTION</div>
+        <div class="eta-value" id="etaValue">—</div>
+        <div class="eta-sub" id="etaSub">computing trajectory...</div>
+      </div>
+      <div class="ml-badge">🤖 ML</div>
     </div>
 
-    <!-- Dashboard (shown after location is set) -->
-    <div class="dashboard" id="dashBoard" style="display:none;">
-
-        <!-- Alert -->
-        <div class="alert-banner waiting" id="alertBanner">
-            <div class="alert-icon" id="alertIcon">📡</div>
-            <div class="alert-content">
-                <div class="alert-title" id="alertTitle">Waiting for truck signal...</div>
-                <div class="alert-sub" id="alertSub">Updates every 3 seconds automatically</div>
-            </div>
-        </div>
-
-        <!-- Distance + Status -->
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-label">
-                    <span class="stat-dot" style="background:var(--blue)"></span>
-                    Distance
-                </div>
-                <div class="stat-value" id="distValue">—</div>
-                <div class="stat-unit" id="distUnit">waiting...</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">
-                    <span class="stat-dot" style="background:var(--green); animation:blink 2s infinite"></span>
-                    Truck
-                </div>
-                <div class="stat-value" style="font-size:14px; color:var(--muted2);" id="truckStatus">Offline</div>
-                <div class="stat-unit" id="lastUpdate"></div>
-            </div>
-        </div>
-
-        <!-- ETA Card (ML Prediction) -->
-        <div class="eta-card" id="etaCard" style="display:none;">
-            <div class="eta-icon">⏱️</div>
-            <div class="eta-content">
-                <div class="eta-label">ML Estimated Arrival</div>
-                <div class="eta-value" id="etaValue">—</div>
-                <div class="eta-sub" id="etaSub">Calculating trajectory...</div>
-            </div>
-            <div class="ml-badge">🤖 ML</div>
-        </div>
-
-        <!-- Truck GPS -->
-        <div class="truck-card">
-            <div class="truck-card-header">
-                <div class="truck-card-title">🚛 Truck GPS</div>
-                <div class="live-pill"><div class="live-dot"></div>LIVE</div>
-            </div>
-            <div class="truck-coords-grid">
-                <div class="tc-item">
-                    <div class="tc-label">Latitude</div>
-                    <div class="tc-val" id="truckLat">—</div>
-                </div>
-                <div class="tc-item">
-                    <div class="tc-label">Longitude</div>
-                    <div class="tc-val" id="truckLon">—</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Map -->
-        <div class="map-card">
-            <div class="map-header">
-                <div class="map-title">📍 Live Map</div>
-                <div class="map-legend">
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--blue)"></div>
-                        You
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--green)"></div>
-                        Truck
-                    </div>
-                </div>
-            </div>
-            <div id="map"></div>
-        </div>
-
+    <div class="truck-card">
+      <div class="truck-card-header">
+        <div class="truck-card-title">🚛 TRUCK_GPS_FEED</div>
+        <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+      </div>
+      <div class="truck-coords-grid">
+        <div class="tc-item"><div class="tc-label">LATITUDE</div><div class="tc-val" id="truckLat">—</div></div>
+        <div class="tc-item"><div class="tc-label">LONGITUDE</div><div class="tc-val" id="truckLon">—</div></div>
+      </div>
     </div>
 
-    <div class="footer">GarbageTrack Prototype · Firebase + GPS API + OpenStreetMap</div>
+    <div class="map-card">
+      <div class="map-header">
+        <div class="map-title">TACTICAL_MAP</div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--neon-cyan)"></div>YOU</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--neon-yellow)"></div>TRUCK</div>
+        </div>
+      </div>
+      <div id="map"></div>
+    </div>
+
+  </div>
+
+  <div class="footer">GARBAGETRACK_SYS // FIREBASE + GPS + ML // BUILD_2.0</div>
 
 </div>
 
@@ -624,7 +429,6 @@
     let wasNearby = false;
     let pollingInterval = null;
 
-    // ── DOM refs ──
     const card        = document.getElementById('mainCard');
     const iconArea    = document.getElementById('iconArea');
     const statusText  = document.getElementById('statusText');
@@ -650,7 +454,6 @@
     const etaValue    = document.getElementById('etaValue');
     const etaSub      = document.getElementById('etaSub');
 
-    // ── HAVERSINE ──
     function haversine(lat1, lon1, lat2, lon2) {
         const R = 6371000;
         const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -661,38 +464,27 @@
     }
 
     function fmtDist(m) {
-        return m >= 1000
-            ? { val: (m/1000).toFixed(1), unit: 'km away' }
-            : { val: Math.round(m), unit: 'm away' };
+        return m >= 1000 ? { val: (m/1000).toFixed(1), unit: 'km away' } : { val: Math.round(m), unit: 'm away' };
     }
 
-    // ── SOUND ALERT (Web Audio API — no file needed) ──
     function playAlert() {
         try {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            // 3 loud beeps, 1 second apart, each lasting 0.8 seconds
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             [0, 1.0, 2.0].forEach(delay => {
-                const osc  = audioCtx.createOscillator();
+                const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.type = 'sine';
-                osc.frequency.value = 880;
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'sine'; osc.frequency.value = 880;
                 const t = audioCtx.currentTime + delay;
                 gain.gain.setValueAtTime(0, t);
                 gain.gain.linearRampToValueAtTime(1.0, t + 0.05);
                 gain.gain.setValueAtTime(1.0, t + 0.5);
                 gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
-                osc.start(t);
-                osc.stop(t + 0.8);
+                osc.start(t); osc.stop(t + 0.8);
             });
         } catch(e) {}
     }
 
-    // ── ML: LINEAR REGRESSION ETA ──
-    // Stores last 6 truck GPS positions with timestamps
     const posBuffer = [];
     const BUFFER_SIZE = 6;
 
@@ -701,11 +493,10 @@
         if (posBuffer.length > BUFFER_SIZE) posBuffer.shift();
     }
 
-    // Simple linear regression: y = slope * t + intercept
     function linearRegression(pts) {
         const n = pts.length;
         if (n < 2) return null;
-        const tNorm = pts[0].t; // normalize to avoid floating point issues
+        const tNorm = pts[0].t;
         const normalized = pts.map(p => ({ t: p.t - tNorm, y: p.y }));
         const sumT  = normalized.reduce((s, p) => s + p.t, 0);
         const sumY  = normalized.reduce((s, p) => s + p.y, 0);
@@ -713,108 +504,70 @@
         const sumTY = normalized.reduce((s, p) => s + p.t * p.y, 0);
         const denom = n * sumTT - sumT * sumT;
         if (Math.abs(denom) < 1e-12) return null;
-        const slope     = (n * sumTY - sumT * sumY) / denom;
-        const intercept = (sumY - slope * sumT) / n;
-        return { slope, intercept };
+        return { slope: (n * sumTY - sumT * sumY) / denom };
     }
 
     function predictETA(tLat, tLon) {
         if (posBuffer.length < 3) return null;
-
-        // Run linear regression separately on lat and lon over time
-        const ptsLat = posBuffer.map(p => ({ t: p.t, y: p.lat }));
-        const ptsLon = posBuffer.map(p => ({ t: p.t, y: p.lon }));
-        const regLat = linearRegression(ptsLat);
-        const regLon = linearRegression(ptsLon);
+        const regLat = linearRegression(posBuffer.map(p => ({ t: p.t, y: p.lat })));
+        const regLon = linearRegression(posBuffer.map(p => ({ t: p.t, y: p.lon })));
         if (!regLat || !regLon) return null;
-
-        // Velocity in degrees/second
-        const vLatDeg = regLat.slope;
-        const vLonDeg = regLon.slope;
-
-        // Convert degrees/sec to meters/sec
         const latToM = 111320;
         const lonToM = 111320 * Math.cos(tLat * Math.PI / 180);
-        const speedMS = Math.sqrt((vLatDeg * latToM) ** 2 + (vLonDeg * lonToM) ** 2);
-
-        if (speedMS < 0.3) return null; // truck is stationary, no ETA
-
-        const dist = haversine(userLat, userLon, tLat, tLon);
-        return dist / speedMS; // ETA in seconds
+        const speedMS = Math.sqrt((regLat.slope * latToM) ** 2 + (regLon.slope * lonToM) ** 2);
+        if (speedMS < 0.3) return null;
+        return haversine(userLat, userLon, tLat, tLon) / speedMS;
     }
 
     function updateETA(tLat, tLon) {
         const etaSeconds = predictETA(tLat, tLon);
         etaCard.style.display = 'flex';
-
         if (etaSeconds === null) {
-            if (posBuffer.length < 3) {
-                etaValue.textContent = '...';
-                etaSub.textContent = 'Collecting data (' + posBuffer.length + '/3 readings)';
-            } else {
-                etaValue.textContent = 'Stopped';
-                etaSub.textContent = 'Truck not moving';
-            }
+            etaValue.textContent = posBuffer.length < 3 ? '...' : 'STOPPED';
+            etaSub.textContent = posBuffer.length < 3 ? 'Collecting data (' + posBuffer.length + '/3 readings)' : 'Truck not moving';
             return;
         }
-
-        const mins = Math.round(etaSeconds / 60);
         const secs = Math.round(etaSeconds);
-
-        if (secs < 30) {
-            etaValue.textContent = 'NOW';
-            etaSub.textContent = 'Truck is arriving!';
-        } else if (secs < 60) {
-            etaValue.textContent = '< 1 min';
-            etaSub.textContent = 'Get ready immediately!';
-        } else {
-            etaValue.textContent = '~' + mins + ' min';
-            etaSub.textContent = 'Based on current speed & direction';
-        }
+        const mins = Math.round(etaSeconds / 60);
+        if (secs < 30) { etaValue.textContent = 'NOW'; etaSub.textContent = 'Truck is arriving!'; }
+        else if (secs < 60) { etaValue.textContent = '< 1 MIN'; etaSub.textContent = 'Get ready immediately!'; }
+        else { etaValue.textContent = '~' + mins + ' MIN'; etaSub.textContent = 'Based on velocity vector regression'; }
     }
 
-    // ── MAP ──
     function initMap() {
         if (mapReady) return;
         mapReady = true;
         try {
-            map = L.map('map', { zoomControl: true, scrollWheelZoom: false })
-                   .setView([userLat, userLon], 15);
+            map = L.map('map', { zoomControl: true, scrollWheelZoom: false }).setView([userLat, userLon], 15);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap', maxZoom: 19
             }).addTo(map);
             const homeIcon = L.divIcon({
-                html: `<div style="width:14px;height:14px;background:#00BFFF;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 10px rgba(0,191,255,0.7)"></div>`,
+                html: `<div style="width:14px;height:14px;background:#00F5FF;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 10px rgba(0,245,255,0.8)"></div>`,
                 iconSize: [14,14], iconAnchor: [7,7], className: ''
             });
-            userMarker = L.marker([userLat, userLon], { icon: homeIcon })
-                .addTo(map).bindPopup('<b>🏠 Your Home</b>');
+            userMarker = L.marker([userLat, userLon], { icon: homeIcon }).addTo(map).bindPopup('<b>🏠 Home Base</b>');
             setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 400);
-        } catch(e) {
-            mapReady = false;
-            map = null;
-        }
+        } catch(e) { mapReady = false; map = null; }
     }
 
     function updateMap(tLat, tLon) {
         if (!map) return;
         try {
             const truckIcon = L.divIcon({
-                html: `<div style="font-size:24px;line-height:1;filter:drop-shadow(0 0 6px rgba(0,255,135,0.6))">🚛</div>`,
+                html: `<div style="font-size:24px;line-height:1;filter:drop-shadow(0 0 8px rgba(255,230,0,0.8))">🚛</div>`,
                 iconSize: [28,28], iconAnchor: [14,14], className: ''
             });
             if (truckMarker) truckMarker.setLatLng([tLat, tLon]);
-            else truckMarker = L.marker([tLat, tLon], { icon: truckIcon })
-                .addTo(map).bindPopup('<b>🚛 Garbage Truck</b>');
+            else truckMarker = L.marker([tLat, tLon], { icon: truckIcon }).addTo(map).bindPopup('<b>🚛 Target Vehicle</b>');
             if (routeLine) map.removeLayer(routeLine);
             routeLine = L.polyline([[userLat, userLon],[tLat, tLon]], {
-                color: '#00BFFF', weight: 2, dashArray: '6 5', opacity: 0.5
+                color: '#FFE600', weight: 2, dashArray: '6 5', opacity: 0.6
             }).addTo(map);
             map.fitBounds(L.latLngBounds([[userLat,userLon],[tLat,tLon]]), { padding: [50,50] });
         } catch(e) {}
     }
 
-    // ── ACTIVATE DASHBOARD ──
     function activateDashboard() {
         dashLocked.style.display = 'none';
         dashBoard.style.display = 'flex';
@@ -831,45 +584,34 @@
         userMarker = null; truckMarker = null; routeLine = null;
     }
 
-    // ── FIREBASE SAVE ──
     async function saveToFirebase(lat, lon) {
         const base = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
         const body = { fields: { latitude: { doubleValue: lat }, longitude: { doubleValue: lon } } };
-        let res = await fetch(
-            `${base}/user/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`,
-            { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }
-        );
+        let res = await fetch(`${base}/user/location?updateMask.fieldPaths=latitude&updateMask.fieldPaths=longitude`,
+            { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
         if (!res.ok && res.status === 404) {
-            res = await fetch(`${base}/user?documentId=location`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
-            });
+            res = await fetch(`${base}/user?documentId=location`,
+                { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
         }
         if (!res.ok) throw new Error(res.status);
     }
 
     async function deleteFromFirebase() {
-        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/user/location`;
-        try { await fetch(url, { method: 'DELETE' }); } catch(e) {}
+        try { await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/user/location`, { method: 'DELETE' }); } catch(e) {}
     }
 
-    // ── LOCATION SHARING ──
     async function getAndSaveLocation() {
-        if (!navigator.geolocation) {
-            card.classList.add('error-state');
-            statusText.textContent = 'GPS not available';
-            return;
-        }
-        statusText.textContent = 'Getting your location...';
+        if (!navigator.geolocation) { card.classList.add('error-state'); statusText.textContent = 'GPS NOT AVAILABLE'; return; }
+        statusText.textContent = 'ACQUIRING SIGNAL...';
         card.classList.remove('saved', 'error-state');
         iconArea.textContent = '📡';
-
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const lat = pos.coords.latitude, lon = pos.coords.longitude;
             try {
                 await saveToFirebase(lat, lon);
                 userLat = lat; userLon = lon;
                 card.classList.add('saved');
-                statusText.textContent = 'Location saved!';
+                statusText.textContent = 'SYNC_CONFIRMED';
                 iconArea.textContent = '✅';
                 latValue.textContent = lat.toFixed(5);
                 lonValue.textContent = lon.toFixed(5);
@@ -877,31 +619,26 @@
                 mainBtn.style.display = 'none';
                 updateBtn.style.display = 'block';
                 stopBtn.style.display = 'block';
-                if (!locationSaved) {
-                    locationSaved = true;
-                    activateDashboard();
-                } else if (userMarker) {
-                    userMarker.setLatLng([lat, lon]);
-                }
+                if (!locationSaved) { locationSaved = true; activateDashboard(); }
+                else if (userMarker) userMarker.setLatLng([lat, lon]);
             } catch(e) {
                 card.classList.add('error-state');
-                statusText.textContent = 'Save failed — check connection';
+                statusText.textContent = 'SYNC_FAILED — CHECK CONNECTION';
                 iconArea.textContent = '❌';
             }
         }, () => {
             card.classList.add('error-state');
-            statusText.textContent = 'Permission denied';
+            statusText.textContent = 'ACCESS_DENIED';
             iconArea.textContent = '🏠';
         }, { enableHighAccuracy: true, timeout: 10000 });
     }
 
     async function stopSharingLocation() {
         await deleteFromFirebase();
-        userLat = null; userLon = null;
-        locationSaved = false;
+        userLat = null; userLon = null; locationSaved = false;
         card.classList.remove('saved', 'error-state');
         iconArea.textContent = '🏠';
-        statusText.textContent = 'Location not set';
+        statusText.textContent = 'AWAITING SYNC';
         coordsDisp.classList.remove('visible');
         mainBtn.style.display = 'block';
         updateBtn.style.display = 'none';
@@ -913,7 +650,7 @@
     updateBtn.addEventListener('click', () => {
         card.classList.remove('saved');
         iconArea.textContent = '🏠';
-        statusText.textContent = 'Updating...';
+        statusText.textContent = 'RESYNCING...';
         updateBtn.style.display = 'none';
         stopBtn.style.display = 'none';
         coordsDisp.classList.remove('visible');
@@ -921,14 +658,11 @@
     });
     stopBtn.addEventListener('click', stopSharingLocation);
 
-    // ── POLLING ──
     let pollingStarted = false;
 
     async function fetchTruck() {
         try {
-            const res = await fetch(
-                `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/truck/location`
-            );
+            const res = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/truck/location`);
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             const fields = data.fields || {};
@@ -936,36 +670,26 @@
             const tLon = fields.longitude ? fields.longitude.doubleValue : null;
             if (tLat == null || tLon == null) throw new Error('no coords');
 
-            // Update truck display
             truckLat.textContent = tLat.toFixed(5);
             truckLon.textContent = tLon.toFixed(5);
-            truckStatus.textContent = 'Online';
-            truckStatus.style.color = 'var(--green)';
-            lastUpdate.textContent = 'Updated ' + new Date().toLocaleTimeString();
+            truckStatus.textContent = 'ONLINE';
+            truckStatus.style.color = 'var(--neon-cyan)';
+            lastUpdate.textContent = 'sync: ' + new Date().toLocaleTimeString();
 
-            // Distance
             const dist = haversine(userLat, userLon, tLat, tLon);
             const { val, unit } = fmtDist(dist);
             distValue.textContent = val;
             distUnit.textContent = unit;
 
-            // ML: add to buffer and predict ETA
             addToBuffer(tLat, tLon);
             updateETA(tLat, tLon);
 
-            // Alert + sound
-            const nearby = dist <= ALERT_RADIUS_M;
-            if (nearby) {
+            if (dist <= ALERT_RADIUS_M) {
                 alertBanner.className = 'alert-banner nearby';
                 alertIcon.textContent = '🔔';
-                alertTitle.textContent = 'Truck is nearby!';
-                alertSub.textContent = `Only ${Math.round(dist)}m away — get ready with your garbage!`;
-                // Play sound only when first entering nearby zone
-                if (!wasNearby) {
-                    playAlert();
-                    wasNearby = true;
-                }
-                // Browser notification (once per minute, Android safe)
+                alertTitle.textContent = 'PROXIMITY_ALERT: TRUCK INBOUND';
+                alertSub.textContent = `Target acquired — ${Math.round(dist)}m intercept distance`;
+                if (!wasNearby) { playAlert(); wasNearby = true; }
                 const now = Date.now();
                 if (now - lastAlertTime > 60000 && Notification.permission === 'granted') {
                     try { new Notification('🚛 GarbageTrack Alert', { body: `Truck is ${Math.round(dist)}m away!` }); } catch(ne) {}
@@ -974,8 +698,8 @@
             } else {
                 alertBanner.className = 'alert-banner far';
                 alertIcon.textContent = '✅';
-                alertTitle.textContent = 'Truck is far away';
-                alertSub.textContent = `${val} ${unit} — you have time to prepare`;
+                alertTitle.textContent = 'SECTOR_CLEAR: TRUCK DISTANT';
+                alertSub.textContent = `${val} ${unit} — standing by`;
                 wasNearby = false;
             }
 
@@ -985,13 +709,13 @@
         } catch(e) {
             truckLat.textContent = '—';
             truckLon.textContent = '—';
-            truckStatus.textContent = 'Offline';
+            truckStatus.textContent = 'OFFLINE';
             truckStatus.style.color = 'var(--muted)';
             distValue.textContent = '—';
             distUnit.textContent = 'no signal';
             alertBanner.className = 'alert-banner waiting';
             alertIcon.textContent = '📡';
-            alertTitle.textContent = 'Waiting for truck signal...';
+            alertTitle.textContent = 'SCANNING FOR SIGNAL...';
             alertSub.textContent = "Open truck.html on the driver's phone";
         }
     }
@@ -1001,9 +725,7 @@
         pollingStarted = true;
         fetchTruck();
         pollingInterval = setInterval(fetchTruck, 3000);
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
+        if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
     }
 </script>
 </body>
